@@ -1,0 +1,34 @@
+{
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "crono-swap",
+          "appId": "1:766683937301:android:ef3c1cbe3438141e43ec1c",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "ios": {
+        "default": {
+          "projectId": "crono-swap",
+          "appId": "1:766683937301:ios:6813eeb5962663dc43ec1c",
+          "uploadDebugSymbols": false,
+          "fileOutput": "ios/Runner/GoogleService-Info.plist"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "crono-swap",
+          "configurations": {
+            "android": "1:766683937301:android:ef3c1cbe3438141e43ec1c",
+            "ios": "1:766683937301:ios:6813eeb5962663dc43ec1c"
+          }
+        }
+      }
+    }
+  }
+}

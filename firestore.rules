@@ -1,0 +1,47 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper function to check if user is an approved moderator or superadmin
+    function isModerator() {
+      return request.auth != null && 
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['moderator', 'superadmin'] ||
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.email == 'superadmin@gmail.com');
+    }
+
+    // User profiles
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update: if request.auth != null && (request.auth.uid == userId || isModerator());
+    }
+    
+    // Skill offers: Anyone can read, only authenticated users can write
+    match /skills/{skillId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // Swap requests
+    match /swaps/{swapId} {
+      // Allow read if user is sender or receiver or moderator
+      allow read: if request.auth != null && (
+        request.auth.uid == resource.data.senderId || 
+        request.auth.uid == resource.data.receiverId ||
+        isModerator()
+      );
+      
+      // Allow create if authenticated and setting self as sender
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.senderId;
+      
+      // Allow update if user is participant or moderator
+      allow update: if request.auth != null && (
+        request.auth.uid == resource.data.senderId || 
+        request.auth.uid == resource.data.receiverId ||
+        isModerator()
+      );
+      
+      // Allow delete if moderator
+      allow delete: if isModerator();
+    }
+  }
+}
