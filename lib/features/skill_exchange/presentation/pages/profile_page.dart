@@ -82,6 +82,87 @@ class ProfilePage extends ConsumerWidget {
                         ),
                       ),
                     const SizedBox(height: 32),
+
+                    // Reputation Row
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (user.isVerifiedProfessional) ...[
+                          Icon(Icons.verified_rounded, size: 20, color: Colors.blue.shade400),
+                          const SizedBox(width: 6),
+                          Text('Verified', style: TextStyle(color: Colors.blue.shade400, fontWeight: FontWeight.bold, fontSize: 13)),
+                          const SizedBox(width: 16),
+                        ],
+                        Icon(Icons.star_rounded, size: 20, color: Colors.amber.shade600),
+                        const SizedBox(width: 4),
+                        Text(
+                          user.averageRating > 0 ? user.averageRating.toStringAsFixed(1) : 'N/A',
+                          style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 14),
+                        ),
+                        const SizedBox(width: 4),
+                        Text('(${user.totalReviews})', style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+
+                    // XP / Level Card
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [theme.colorScheme.primary.withValues(alpha: 0.08), theme.colorScheme.secondary.withValues(alpha: 0.05)],
+                        ),
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.1)),
+                      ),
+                      child: Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: theme.colorScheme.primary,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Text('LVL ${user.level}', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 12)),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Text(user.levelTitle, style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 14)),
+                                ],
+                              ),
+                              Row(
+                                children: [
+                                  Icon(Icons.local_fire_department_rounded, size: 18, color: Colors.orange.shade400),
+                                  const SizedBox(width: 4),
+                                  Text('${user.streak} streak', style: TextStyle(color: Colors.orange.shade600, fontSize: 12, fontWeight: FontWeight.bold)),
+                                ],
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(6),
+                            child: LinearProgressIndicator(
+                              value: user.levelProgress.clamp(0.0, 1.0),
+                              minHeight: 8,
+                              backgroundColor: Colors.grey.shade200,
+                              valueColor: AlwaysStoppedAnimation(theme.colorScheme.primary),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            '${user.xp} / ${user.xpForNextLevel} XP',
+                            style: TextStyle(color: Colors.grey.shade500, fontSize: 11),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
                     Row(
                       children: [
                         Expanded(
@@ -132,9 +213,94 @@ class ProfilePage extends ConsumerWidget {
                         ),
                       ),
                     ],
+                    if (user.skillsWanted.isNotEmpty) ...[
+                      const SizedBox(height: 24),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Looking to Learn',
+                          style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: user.skillsWanted.map((skill) => Chip(
+                            label: Text(skill, style: const TextStyle(fontSize: 12)),
+                            avatar: const Icon(Icons.menu_book_rounded, size: 16),
+                            backgroundColor: Colors.green.shade50,
+                            side: BorderSide.none,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          )).toList(),
+                        ),
+                      ),
+                    ],
+                    if (user.availability.isNotEmpty) ...[
+                      const SizedBox(height: 24),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Available',
+                          style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: user.availability.map((slot) => Chip(
+                            label: Text(slot, style: const TextStyle(fontSize: 12)),
+                            avatar: const Icon(Icons.schedule_rounded, size: 16),
+                            backgroundColor: Colors.blue.shade50,
+                            side: BorderSide.none,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          )).toList(),
+                        ),
+                      ),
+                    ],
+                    if (user.badgeIds.isNotEmpty) ...[
+                      const SizedBox(height: 24),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Badges',
+                          style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: user.badgeIds.map((badgeId) {
+                            final badges = {
+                              'top_mentor': '🎓 Top Mentor',
+                              'fast_learner': '⚡ Fast Learner',
+                              'generous': '💝 Generous',
+                              'rising_star': '🌟 Rising Star',
+                              'trusted': '✅ Trusted',
+                              'streak_master': '🔥 Streak Master',
+                            };
+                            return Chip(
+                              label: Text(badges[badgeId] ?? badgeId, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                              backgroundColor: Colors.amber.shade50,
+                              side: BorderSide(color: Colors.amber.shade200),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
+
         loading: () => SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Column(

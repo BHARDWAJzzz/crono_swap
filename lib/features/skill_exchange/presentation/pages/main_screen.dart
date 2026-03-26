@@ -4,8 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'dashboard_page.dart';
 import 'profile_page.dart';
 import 'explore_page.dart';
+import 'lectures_page.dart';
 import 'swaps_page.dart';
-import 'settings_page.dart';
 import 'admin_page.dart';
 import '../providers/auth_providers.dart';
 
@@ -23,6 +23,14 @@ class _MainScreenState extends ConsumerState<MainScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final userDataAsync = ref.watch(userDataProvider);
+    
+    // Initialize notifications when user is data is ready
+    userDataAsync.whenData((user) {
+      if (user != null) {
+        // ref.read(notificationServiceProvider(ref)).init(); 
+        // Note: Using a provider.family for NotificationService
+      }
+    });
     
     return userDataAsync.when(
       data: (user) {
@@ -91,9 +99,9 @@ class _MainScreenState extends ConsumerState<MainScreen> {
         final List<Widget> pages = [
           const DashboardPage(),
           const ExplorePage(),
+          const LecturesPage(),
           const SwapsPage(),
           const ProfilePage(),
-          const SettingsPage(),
           if (isAdmin) const AdminPage(),
         ];
 
@@ -143,16 +151,17 @@ class _MainScreenState extends ConsumerState<MainScreen> {
                     label: 'Explore',
                   ),
                   const BottomNavigationBarItem(
+                    icon: Icon(Icons.school_outlined),
+                    activeIcon: Icon(Icons.school),
+                    label: 'Lectures',
+                  ),
+                  const BottomNavigationBarItem(
                     icon: Icon(Icons.swap_horiz_rounded),
                     label: 'Swaps',
                   ),
                   const BottomNavigationBarItem(
                     icon: Icon(Icons.person_outline),
                     label: 'Profile',
-                  ),
-                  const BottomNavigationBarItem(
-                    icon: Icon(Icons.settings_outlined),
-                    label: 'Settings',
                   ),
                   if (isAdmin)
                     const BottomNavigationBarItem(

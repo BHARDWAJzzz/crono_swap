@@ -4,7 +4,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../domain/entities/swap_request.dart';
 import '../providers/swap_providers.dart';
+import '../providers/auth_providers.dart';
 import 'chat_page.dart';
+import 'review_page.dart';
 
 class SwapsPage extends ConsumerWidget {
   const SwapsPage({super.key});
@@ -18,21 +20,22 @@ class SwapsPage extends ConsumerWidget {
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        backgroundColor: theme.colorScheme.surface,
+        backgroundColor: Colors.white,
         appBar: AppBar(
-          title: Text('My Swaps', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+          title: Text('MY SWAPS', style: GoogleFonts.outfit(fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 18)),
+          centerTitle: true,
           elevation: 0,
-          backgroundColor: Colors.transparent,
-          foregroundColor: theme.colorScheme.onSurface,
+          backgroundColor: Colors.white,
           bottom: TabBar(
             labelColor: theme.colorScheme.primary,
-            unselectedLabelColor: Colors.grey,
+            unselectedLabelColor: Colors.grey.shade400,
             indicatorColor: theme.colorScheme.primary,
-            indicatorWeight: 3,
-            labelStyle: GoogleFonts.outfit(fontWeight: FontWeight.bold),
+            indicatorSize: TabBarIndicatorSize.label,
+            indicatorWeight: 4,
+            labelStyle: GoogleFonts.outfit(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 1),
             tabs: const [
-              Tab(text: 'Incoming'),
-              Tab(text: 'Sent'),
+              Tab(text: 'INCOMING'),
+              Tab(text: 'SENT'),
             ],
           ),
         ),
@@ -72,117 +75,229 @@ class SwapsPage extends ConsumerWidget {
 
   Widget _buildSwapCard(BuildContext context, WidgetRef ref, SwapRequest swap, ThemeData theme, bool isIncoming) {
     final dateStr = DateFormat('MMM d, HH:mm').format(swap.createdAt);
+    final avatarUrl = isIncoming ? swap.senderAvatarUrl : swap.receiverAvatarUrl;
+    final partnerName = isIncoming ? swap.senderName : swap.receiverName;
     
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: BorderSide(color: Colors.grey.shade100),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.grey.shade100, width: 1.5),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 20, offset: const Offset(0, 8)),
+        ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: _getStatusColor(swap.status).withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    swap.status.name.toUpperCase(),
-                    style: TextStyle(
-                      color: _getStatusColor(swap.status),
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                Text(dateStr, style: TextStyle(color: Colors.grey.shade400, fontSize: 11)),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Text(
-              swap.skillTitle,
-              style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              isIncoming ? 'From: ${swap.senderName}' : 'To: ${swap.receiverName}',
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
-            ),
-            if (isIncoming && swap.status == SwapRequestStatus.pending) ...[
-              const SizedBox(height: 20),
-              Row(
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => _updateStatus(ref, swap.id, SwapRequestStatus.rejected),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.red,
-                        side: BorderSide(color: Colors.red.shade100),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(3),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: theme.colorScheme.primary.withOpacity(0.1), width: 2),
+                        ),
+                        child: CircleAvatar(
+                          radius: 20,
+                          backgroundColor: Colors.grey.shade100,
+                          backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
+                          child: avatarUrl == null ? const Icon(Icons.person) : null,
+                        ),
                       ),
-                      child: const Text('Decline'),
-                    ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              partnerName.toUpperCase(),
+                              style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1),
+                            ),
+                            Text(
+                              isIncoming ? 'Requested your skill' : 'You requested',
+                              style: TextStyle(color: Colors.grey.shade500, fontSize: 11),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: _getStatusColor(swap.status).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          swap.status.name.toUpperCase(),
+                          style: GoogleFonts.outfit(
+                            color: _getStatusColor(swap.status),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () => _updateStatus(ref, swap.id, SwapRequestStatus.accepted),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: theme.colorScheme.primary,
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  const SizedBox(height: 20),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          swap.skillTitle,
+                          style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.w800, letterSpacing: -0.5),
+                        ),
                       ),
-                      child: const Text('Accept'),
-                    ),
+                      const SizedBox(width: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primary.withOpacity(0.05),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: theme.colorScheme.primary.withOpacity(0.1)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.timer_outlined, size: 14, color: theme.colorScheme.primary),
+                            const SizedBox(width: 6),
+                            Text(
+                              '${swap.timeValue.toStringAsFixed(1)} Hr',
+                              style: GoogleFonts.outfit(
+                                fontWeight: FontWeight.w900,
+                                fontSize: 13,
+                                color: theme.colorScheme.primary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'REEEIVED ON: $dateStr',
+                    style: TextStyle(color: Colors.grey.shade400, fontSize: 10, fontWeight: FontWeight.w600, letterSpacing: 0.5),
                   ),
                 ],
               ),
-            ],
-            if (swap.status == SwapRequestStatus.accepted || swap.status == SwapRequestStatus.completed) ...[
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (c) => ChatPage(swap: swap)),
-                  ),
-                  icon: const Icon(Icons.chat_bubble_outline_rounded, size: 18),
-                  label: const Text('Chat with Partner'),
-                  style: OutlinedButton.styleFrom(
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
+            ),
+            
+            if (isIncoming && swap.status == SwapRequestStatus.pending)
+              Container(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextButton(
+                        onPressed: () => _updateStatus(ref, swap.id, SwapRequestStatus.rejected),
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.red.shade400,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        ),
+                        child: const Text('DECLINE', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () => _updateStatus(ref, swap.id, SwapRequestStatus.accepted),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: theme.colorScheme.primary,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        ),
+                        child: const Text('ACCEPT', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
-            if (!isIncoming && swap.status == SwapRequestStatus.accepted) ...[
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () => ref.read(swapRepositoryProvider).completeRequest(swap.id),
-                  icon: const Icon(Icons.check_circle_outline_rounded, size: 18),
-                  label: const Text('Confirm Completion'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: theme.colorScheme.primary,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
+
+            if (swap.status == SwapRequestStatus.accepted || swap.status == SwapRequestStatus.completed)
+              Container(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (c) => ChatPage(swap: swap)),
+                        ),
+                        icon: Icon(Icons.chat_bubble_outline_rounded, size: 18, color: theme.colorScheme.primary),
+                        label: Text('CHAT', style: GoogleFonts.outfit(fontWeight: FontWeight.w900, color: theme.colorScheme.primary, letterSpacing: 1)),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: theme.colorScheme.primary.withValues(alpha: 0.2), width: 1.5),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                        ),
+                      ),
+                    ),
+                    if (!isIncoming && swap.status == SwapRequestStatus.accepted) ...[
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () => ref.read(swapRepositoryProvider).completeRequest(swap.id),
+                          icon: const Icon(Icons.check_circle_outline_rounded, size: 18),
+                          label: const Text('COMPLETE', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: theme.colorScheme.primary,
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                          ),
+                        ),
+                      ),
+                    ],
+                   if (swap.status == SwapRequestStatus.completed) ...[
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            final user = ref.read(userDataProvider).value;
+                            if (user == null) return;
+                            final revieweeId = user.id == swap.senderId ? swap.receiverId : swap.senderId;
+                            final revieweeName = user.id == swap.senderId ? swap.receiverName : swap.senderName;
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => ReviewPage(
+                                  swapId: swap.id,
+                                  revieweeId: revieweeId,
+                                  revieweeName: revieweeName,
+                                  skillTitle: swap.skillTitle,
+                                ),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.star_border_rounded, size: 18),
+                          label: const Text('REVIEW', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.amber.shade600,
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
-            ],
           ],
         ),
       ),

@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../providers/auth_providers.dart';
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 import '../../../../core/theme.dart';
 
 class AuthPage extends ConsumerStatefulWidget {
@@ -21,6 +23,10 @@ class _AuthPageState extends ConsumerState<AuthPage> {
   final _passwordController = TextEditingController();
   final _nameController = TextEditingController();
   final _bioController = TextEditingController();
+  final _linkedinController = TextEditingController();
+  
+  File? _certificateFile;
+  File? _resumeFile;
   
   final List<String> _selectedInterests = [];
   final List<String> _availableInterests = [
@@ -48,11 +54,12 @@ class _AuthPageState extends ConsumerState<AuthPage> {
     _passwordController.dispose();
     _nameController.dispose();
     _bioController.dispose();
+    _linkedinController.dispose();
     super.dispose();
   }
 
   void _nextPage() {
-    if (_currentPage < 3) {
+    if (_currentPage < 4) {
       _pageController.nextPage(
         duration: const Duration(milliseconds: 400),
         curve: Curves.easeInOut,
@@ -92,8 +99,20 @@ class _AuthPageState extends ConsumerState<AuthPage> {
         _showError('Please select your Date of Birth');
         return;
       }
+      _nextPage();
+    } else if (_currentPage == 4) {
       setState(() => _isLoading = true);
       try {
+        String? certUrl;
+        String? resumeUrl;
+
+        if (_certificateFile != null) {
+          certUrl = await ref.read(authRepositoryProvider).uploadVerificationFile(_certificateFile!, 'certificate');
+        }
+        if (_resumeFile != null) {
+          resumeUrl = await ref.read(authRepositoryProvider).uploadVerificationFile(_resumeFile!, 'resume');
+        }
+
         await ref.read(authRepositoryProvider).signUpWithEmail(
           email: _emailController.text.trim(),
           password: _passwordController.text.trim(),
@@ -102,6 +121,9 @@ class _AuthPageState extends ConsumerState<AuthPage> {
           interests: _selectedInterests,
           dob: _selectedDob!,
           avatarUrl: _selectedAvatarUrl,
+          linkedinUrl: _linkedinController.text.trim().isNotEmpty ? _linkedinController.text.trim() : null,
+          certificateUrl: certUrl,
+          resumeUrl: resumeUrl,
         );
       } catch (e) {
         _showError(e.toString());
@@ -138,15 +160,19 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 32),
-                    child: PageView(
-                      controller: _pageController,
-                      physics: const NeverScrollableScrollPhysics(),
-                      children: [
-                        _buildWelcomePage(theme),
-                        _buildLoginPage(theme),
-                        _buildSignUpBasicPage(theme),
-                        _buildSignUpProfilePage(theme),
-                      ],
+                    child: Form(
+                      key: _formKey,
+                      child: PageView(
+                        controller: _pageController,
+                        physics: const NeverScrollableScrollPhysics(),
+                        children: [
+                          _buildWelcomePage(theme),
+                          _buildLoginPage(theme),
+                          _buildSignUpBasicPage(theme),
+                          _buildSignUpProfilePage(theme),
+                          _buildVerificationPage(theme),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -174,7 +200,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
               right: 0,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(4, (index) => AnimatedContainer(
+                children: List.generate(5, (index) => AnimatedContainer(
                   duration: const Duration(milliseconds: 300),
                   margin: const EdgeInsets.symmetric(horizontal: 4),
                   width: _currentPage == index ? 24 : 8,
@@ -296,9 +322,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
   Widget _buildLoginPage(ThemeData theme) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(32),
-      child: Form(
-        key: _formKey,
-        child: Column(
+      child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
@@ -360,11 +384,47 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                 ),
               ),
             ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(child: Divider(color: Colors.grey.shade300)),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Text('OR', style: TextStyle(color: Colors.grey.shade400, fontSize: 12, fontWeight: FontWeight.bold)),
+                ),
+                Expanded(child: Divider(color: Colors.grey.shade300)),
+              ],
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: _isLoading ? null : () async {
+                  setState(() => _isLoading = true);
+                  try {
+                    await ref.read(authRepositoryProvider).signInWithGoogle();
+                  } catch (e) {
+                    _showError(e.toString());
+                  } finally {
+                    if (mounted) setState(() => _isLoading = false);
+                  }
+                },
+                icon: const Text('G', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+                label: Text('Continue with Google', style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 18),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  side: BorderSide(color: Colors.grey.shade300, width: 1.5),
+                  foregroundColor: Colors.grey.shade800,
+                ),
+              ),
+            ),
           ],
         ),
-      ),
-    );
-  }
+      );
+    }
+
+
 
   Widget _buildSignUpBasicPage(ThemeData theme) {
     return SingleChildScrollView(
@@ -624,6 +684,127 @@ class _AuthPageState extends ConsumerState<AuthPage> {
     );
   }
 
+  Widget _buildVerificationPage(ThemeData theme) {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Verification',
+            style: GoogleFonts.outfit(
+              fontSize: 28, 
+              fontWeight: FontWeight.w900, 
+              letterSpacing: -1,
+              height: 1.1,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Add optional credentials to help our moderators approve you faster.',
+            style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+          ),
+          const SizedBox(height: 32),
+          
+          _buildTextField(
+            controller: _linkedinController,
+            label: 'LINKEDIN PROFILE',
+            hintText: 'linkedin.com/in/username',
+            icon: Icons.link_rounded,
+          ),
+          
+          const SizedBox(height: 32),
+          
+          _buildFileUploadTile(
+            title: 'CERTIFICATE (PDF)',
+            file: _certificateFile,
+            onTap: () => _pickVerificationFile('certificate'),
+            icon: Icons.verified_user_outlined,
+          ),
+          
+          const SizedBox(height: 20),
+          
+          _buildFileUploadTile(
+            title: 'RESUME / CV (PDF)',
+            file: _resumeFile,
+            onTap: () => _pickVerificationFile('resume'),
+            icon: Icons.description_outlined,
+          ),
+          
+          const SizedBox(height: 40),
+          Text(
+            'This information is optional but highly recommended for trust.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.grey.shade400, fontSize: 12, fontStyle: FontStyle.italic),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFileUploadTile({required String title, File? file, required VoidCallback onTap, required IconData icon}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: GoogleFonts.outfit(
+            fontSize: 10,
+            fontWeight: FontWeight.w900,
+            color: Colors.grey.shade400,
+            letterSpacing: 1.5,
+          ),
+        ),
+        const SizedBox(height: 10),
+        InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.grey.shade100),
+            ),
+            child: Row(
+              children: [
+                Icon(icon, color: Colors.blue.shade300, size: 24),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Text(
+                    file != null ? file.path.split('/').last : 'Select File',
+                    style: TextStyle(
+                      color: file != null ? Colors.black87 : Colors.grey,
+                      fontWeight: file != null ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
+                ),
+                if (file != null)
+                  const Icon(Icons.check_circle_rounded, color: Colors.green, size: 20),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _pickVerificationFile(String type) async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf'],
+    );
+
+    if (result != null && result.files.single.path != null) {
+      setState(() {
+        if (type == 'certificate') {
+          _certificateFile = File(result.files.single.path!);
+        } else {
+          _resumeFile = File(result.files.single.path!);
+        }
+      });
+    }
+  }
+
   Widget _buildTextField({
     required TextEditingController controller,
     required String label,
@@ -717,7 +898,10 @@ class _AuthPageState extends ConsumerState<AuthPage> {
         if (_formKey.currentState!.validate()) _nextPage();
       };
     } else if (_currentPage == 3) {
-      label = 'Create Account';
+      label = 'Next: Verification';
+      onPressed = _submit;
+    } else if (_currentPage == 4) {
+      label = 'Complete Signup';
       onPressed = _submit;
     }
 

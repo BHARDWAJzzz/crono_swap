@@ -99,10 +99,13 @@ class ExchangeBottomSheet extends ConsumerWidget {
                         id: const Uuid().v4(),
                         senderId: user.id,
                         senderName: user.name,
+                        senderAvatarUrl: user.avatarUrl,
                         receiverId: skill.providerId,
                         receiverName: skill.providerName,
+                        receiverAvatarUrl: skill.providerAvatarUrl,
                         skillId: skill.id,
                         skillTitle: skill.title,
+                        timeValue: skill.timeValue,
                         createdAt: DateTime.now(),
                       );
                       

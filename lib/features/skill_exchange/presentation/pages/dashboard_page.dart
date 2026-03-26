@@ -8,6 +8,7 @@ import '../../domain/entities/skill.dart';
 import '../providers/auth_providers.dart';
 import '../providers/skill_providers.dart';
 import '../widgets/add_skill_bottom_sheet.dart';
+import 'transaction_history_page.dart';
 
 class DashboardPage extends ConsumerStatefulWidget {
   const DashboardPage({super.key});
@@ -17,15 +18,6 @@ class DashboardPage extends ConsumerStatefulWidget {
 }
 
 class _DashboardPageState extends ConsumerState<DashboardPage> {
-  String _getInitials(String name) {
-    if (name.isEmpty) return '??';
-    final parts = name.trim().split(' ');
-    if (parts.length > 1) {
-      return '${parts[0][0]}${parts[parts.length - 1][0]}'.toUpperCase();
-    }
-    return parts[0][0].toUpperCase();
-  }
-
   @override
   Widget build(BuildContext context) {
     final skillsAsync = ref.watch(skillListProvider);
@@ -102,6 +94,11 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                   ),
                 ),
                 const Icon(Icons.notifications_none_rounded, color: Colors.white70),
+                const SizedBox(width: 8),
+                IconButton(
+                  icon: const Icon(Icons.history_rounded, color: Colors.white70),
+                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (c) => const TransactionHistoryPage())),
+                ),
               ],
             ),
             const SizedBox(height: 40),

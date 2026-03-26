@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../providers/skill_providers.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'admin_config_page.dart';
 
 class AdminPage extends ConsumerWidget {
   const AdminPage({super.key});
@@ -13,7 +15,7 @@ class AdminPage extends ConsumerWidget {
     final theme = Theme.of(context);
 
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Scaffold(
         backgroundColor: theme.colorScheme.surface,
         appBar: AppBar(
@@ -34,6 +36,7 @@ class AdminPage extends ConsumerWidget {
             tabs: const [
               Tab(text: 'Content'),
               Tab(text: 'User Access'),
+              Tab(text: 'Config'),
             ],
           ),
         ),
@@ -41,6 +44,7 @@ class AdminPage extends ConsumerWidget {
           children: [
             _buildContentTab(theme, skillsAsync),
             _buildUserAccessTab(theme, ref),
+            const AdminConfigPage(),
           ],
         ),
       ),
@@ -154,6 +158,8 @@ class AdminPage extends ConsumerWidget {
                       Text(data['bio'], style: const TextStyle(fontSize: 13, height: 1.4)),
                     ],
                     const SizedBox(height: 20),
+                    _buildVerificationLinks(data),
+                    const SizedBox(height: 20),
                     Row(
                       children: [
                         Expanded(
@@ -210,6 +216,76 @@ class AdminPage extends ConsumerWidget {
         Text(label, style: TextStyle(color: Colors.red.shade700, fontSize: 12, fontWeight: FontWeight.bold)),
         Text(value, style: GoogleFonts.outfit(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.red.shade900)),
       ],
+    );
+  }
+
+  Widget _buildVerificationLinks(Map<String, dynamic> data) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'VERIFICATION DOCUMENTS',
+          style: GoogleFonts.outfit(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey.shade400, letterSpacing: 1.2),
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            if (data['linkedinUrl'] != null)
+              _VerificationChip(
+                label: 'LinkedIn',
+                icon: Icons.link_rounded,
+                onTap: () => _launchURL(data['linkedinUrl']),
+                color: Colors.blue.shade600,
+              ),
+            if (data['certificateUrl'] != null)
+              _VerificationChip(
+                label: 'Certificate',
+                icon: Icons.verified_user_rounded,
+                onTap: () => _launchURL(data['certificateUrl']),
+                color: Colors.green.shade600,
+              ),
+            if (data['resumeUrl'] != null)
+              _VerificationChip(
+                label: 'Resume',
+                icon: Icons.description_rounded,
+                onTap: () => _launchURL(data['resumeUrl']),
+                color: Colors.purple.shade600,
+              ),
+            if (data['linkedinUrl'] == null && data['certificateUrl'] == null && data['resumeUrl'] == null)
+              Text('No documents provided', style: TextStyle(color: Colors.grey.shade400, fontSize: 12, fontStyle: FontStyle.italic)),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Future<void> _launchURL(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    }
+  }
+}
+
+class _VerificationChip extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+  final Color color;
+
+  const _VerificationChip({required this.label, required this.icon, required this.onTap, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return ActionChip(
+      onPressed: onTap,
+      avatar: Icon(icon, size: 16, color: Colors.white),
+      label: Text(label, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+      backgroundColor: color,
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
     );
   }
 }

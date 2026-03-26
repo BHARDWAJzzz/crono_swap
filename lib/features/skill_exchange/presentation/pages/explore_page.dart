@@ -5,6 +5,7 @@ import '../providers/skill_providers.dart';
 import '../widgets/skill_card.dart';
 import '../../domain/entities/skill.dart';
 import 'skill_detail_page.dart';
+import '../providers/auth_providers.dart';
 
 import '../../../../core/widgets/shimmer_loader.dart';
 
@@ -53,11 +54,51 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
                   return const Center(child: Text('No skills found matching your search.'));
                 }
 
+                // Smart matching: filter by user interests
+                final userData = ref.watch(userDataProvider).value;
+                final userInterests = userData?.interests ?? [];
+                final recommendedSkills = skills.where((s) => 
+                  userInterests.any((interest) => 
+                    s.category.toLowerCase().contains(interest.toLowerCase()) ||
+                    s.title.toLowerCase().contains(interest.toLowerCase())
+                  ) && s.providerId != (userData?.id ?? '')
+                ).toList();
+
                 return ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                  itemCount: remainingSkills.length + 1,
+                  itemCount: remainingSkills.length + (recommendedSkills.isNotEmpty ? 2 : 1),
                   itemBuilder: (context, index) {
-                    if (index == 0) {
+                    if (index == 0 && recommendedSkills.isNotEmpty) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8, top: 8),
+                            child: Row(
+                              children: [
+                                Icon(Icons.auto_awesome_rounded, size: 18, color: Colors.amber.shade600),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Recommended For You',
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.grey.shade800,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          ...recommendedSkills.take(3).map((s) => Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: SkillCard(skill: s),
+                          )),
+                          const SizedBox(height: 8),
+                        ],
+                      );
+                    }
+                    final adjustedIndex = recommendedSkills.isNotEmpty ? index - 1 : index;
+                    if (adjustedIndex == 0) {
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 16, top: 8),
                         child: Text(
@@ -70,9 +111,11 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
                         ),
                       );
                     }
+                    final skillIndex = adjustedIndex - 1;
+                    if (skillIndex >= remainingSkills.length) return const SizedBox.shrink();
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 16),
-                      child: SkillCard(skill: remainingSkills[index - 1]),
+                      child: SkillCard(skill: remainingSkills[skillIndex]),
                     );
                   },
                 );

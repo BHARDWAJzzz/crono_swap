@@ -1,9 +1,12 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart' as firestore;
 import '../../domain/entities/swap_request.dart';
 import '../../domain/repositories/swap_repository.dart';
+import '../../domain/entities/transaction.dart';
+import '../models/transaction_model.dart';
+import 'package:uuid/uuid.dart';
 
 class FirestoreSwapRepository implements SwapRepository {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final firestore.FirebaseFirestore _firestore = firestore.FirebaseFirestore.instance;
 
   @override
   Stream<List<SwapRequest>> getIncomingRequests(String userId) {
@@ -60,16 +63,44 @@ class FirestoreSwapRepository implements SwapRepository {
       final senderId = data['senderId'];
       final receiverId = data['receiverId'];
 
+      final int timeValue = data['timeValue'] ?? 1;
+
       // Mark swap as completed
       transaction.update(swapDoc.reference, {'status': SwapRequestStatus.completed.name});
 
-      // Atomically swap time balance (1 unit)
+      // Atomically swap time balance
       transaction.update(_firestore.collection('users').doc(senderId), {
-        'timeBalance': FieldValue.increment(-1),
+        'timeBalance': firestore.FieldValue.increment(-timeValue),
       });
       transaction.update(_firestore.collection('users').doc(receiverId), {
-        'timeBalance': FieldValue.increment(1),
+        'timeBalance': firestore.FieldValue.increment(timeValue),
       });
+
+      // Log transactions for history
+      final now = DateTime.now();
+      final senderTransaction = TransactionModel(
+        id: const Uuid().v4(),
+        userId: senderId,
+        otherUserId: receiverId,
+        otherUserName: data['receiverName'] ?? 'Partner',
+        title: data['skillTitle'] ?? 'Skill Swap',
+        amount: -timeValue,
+        type: TransactionType.swap,
+        createdAt: now,
+      );
+      final receiverTransaction = TransactionModel(
+        id: const Uuid().v4(),
+        userId: receiverId,
+        otherUserId: senderId,
+        otherUserName: data['senderName'] ?? 'Partner',
+        title: data['skillTitle'] ?? 'Skill Swap',
+        amount: timeValue,
+        type: TransactionType.swap,
+        createdAt: now,
+      );
+
+      transaction.set(_firestore.collection('transactions').doc(senderTransaction.id), senderTransaction.toMap());
+      transaction.set(_firestore.collection('transactions').doc(receiverTransaction.id), receiverTransaction.toMap());
     });
   }
 
@@ -78,12 +109,15 @@ class FirestoreSwapRepository implements SwapRepository {
       id: id,
       senderId: data['senderId'] ?? '',
       senderName: data['senderName'] ?? '',
+      senderAvatarUrl: data['senderAvatarUrl'],
       receiverId: data['receiverId'] ?? '',
       receiverName: data['receiverName'] ?? '',
+      receiverAvatarUrl: data['receiverAvatarUrl'],
       skillId: data['skillId'] ?? '',
       skillTitle: data['skillTitle'] ?? '',
+      timeValue: data['timeValue'] ?? 1,
       status: SwapRequestStatus.values.byName(data['status'] ?? 'pending'),
-      createdAt: (data['createdAt'] as Timestamp).toDate(),
+      createdAt: (data['createdAt'] as firestore.Timestamp).toDate(),
     );
   }
 
@@ -91,12 +125,15 @@ class FirestoreSwapRepository implements SwapRepository {
     return {
       'senderId': request.senderId,
       'senderName': request.senderName,
+      'senderAvatarUrl': request.senderAvatarUrl,
       'receiverId': request.receiverId,
       'receiverName': request.receiverName,
+      'receiverAvatarUrl': request.receiverAvatarUrl,
       'skillId': request.skillId,
       'skillTitle': request.skillTitle,
+      'timeValue': request.timeValue,
       'status': request.status.name,
-      'createdAt': Timestamp.fromDate(request.createdAt),
+      'createdAt': firestore.Timestamp.fromDate(request.createdAt),
     };
   }
 }

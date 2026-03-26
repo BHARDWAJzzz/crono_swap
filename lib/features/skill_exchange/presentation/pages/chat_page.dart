@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../domain/entities/swap_request.dart';
-import '../../domain/entities/user.dart';
 import '../providers/auth_providers.dart';
 
 class ChatPage extends ConsumerStatefulWidget {
@@ -69,6 +69,13 @@ class _ChatPageState extends ConsumerState<ChatPage> {
           ],
         ),
         centerTitle: true,
+        actions: [
+          IconButton(
+            onPressed: () => _showMeetLinkDialog(context, user),
+            icon: const Icon(Icons.videocam_rounded),
+            tooltip: 'Send Video Link',
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -110,13 +117,34 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                         child: Column(
                           crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              msg['text'] ?? '',
-                              style: TextStyle(
-                                color: isMe ? Colors.white : Colors.black87,
-                                fontSize: 15,
+                            if (_isUrl(msg['text'] ?? ''))
+                              GestureDetector(
+                                onTap: () => launchUrl(Uri.parse(msg['text']), mode: LaunchMode.externalApplication),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.videocam_rounded, size: 16, color: isMe ? Colors.white : Colors.blue),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      'Join Video Call 🔗',
+                                      style: TextStyle(
+                                        color: isMe ? Colors.white : Colors.blue,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                        decoration: TextDecoration.underline,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            else
+                              Text(
+                                msg['text'] ?? '',
+                                style: TextStyle(
+                                  color: isMe ? Colors.white : Colors.black87,
+                                  fontSize: 15,
+                                ),
                               ),
-                            ),
                           ],
                         ),
                       ),
@@ -163,6 +191,41 @@ class _ChatPageState extends ConsumerState<ChatPage> {
           IconButton.filled(
             onPressed: _sendMessage,
             icon: const Icon(Icons.send_rounded),
+          ),
+        ],
+      ),
+    );
+  }
+
+  bool _isUrl(String text) {
+    return text.startsWith('http://') || text.startsWith('https://');
+  }
+
+  void _showMeetLinkDialog(BuildContext context, dynamic user) {
+    final linkController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Share Video Link', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+        content: TextField(
+          controller: linkController,
+          decoration: InputDecoration(
+            hintText: 'Paste Zoom/Google Meet link',
+            prefixIcon: const Icon(Icons.link_rounded),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () {
+              if (linkController.text.trim().isNotEmpty) {
+                _messageController.text = linkController.text.trim();
+                _sendMessage();
+                Navigator.pop(context);
+              }
+            },
+            child: const Text('Send'),
           ),
         ],
       ),
