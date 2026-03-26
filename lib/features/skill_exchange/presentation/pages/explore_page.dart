@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../providers/skill_providers.dart';
 import '../widgets/skill_card.dart';
+import '../../domain/entities/skill.dart';
+import 'skill_detail_page.dart';
 
 import '../../../../core/widgets/shimmer_loader.dart';
 
@@ -34,28 +36,45 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
       ),
       body: Column(
         children: [
+          _buildFeaturedCarousel(skillsAsync),
           _buildSearchAndFilter(theme),
           Expanded(
             child: skillsAsync.when(
               data: (skills) {
-                final filteredSkills = skills.where((s) {
+                final featuredSkills = skills.take(3).toList();
+                final remainingSkills = skills.skip(3).where((s) {
                   final matchesSearch = s.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
                       s.description.toLowerCase().contains(_searchQuery.toLowerCase());
                   final matchesCategory = _selectedCategory == 'All' || s.category == _selectedCategory;
                   return matchesSearch && matchesCategory;
                 }).toList();
 
-                if (filteredSkills.isEmpty) {
+                if (remainingSkills.isEmpty && featuredSkills.isEmpty) {
                   return const Center(child: Text('No skills found matching your search.'));
                 }
 
                 return ListView.builder(
-                  padding: const EdgeInsets.all(24),
-                  itemCount: filteredSkills.length,
-                  itemBuilder: (context, index) => Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: SkillCard(skill: filteredSkills[index]),
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                  itemCount: remainingSkills.length + 1,
+                  itemBuilder: (context, index) {
+                    if (index == 0) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 16, top: 8),
+                        child: Text(
+                          _searchQuery.isEmpty ? 'All Skills' : 'Search Results',
+                          style: GoogleFonts.outfit(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey.shade800,
+                          ),
+                        ),
+                      );
+                    }
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: SkillCard(skill: remainingSkills[index - 1]),
+                    );
+                  },
                 );
               },
               loading: () => ListView.builder(
@@ -71,6 +90,104 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildFeaturedCarousel(AsyncValue<List<Skill>> skillsAsync) {
+    return skillsAsync.when(
+      data: (skills) {
+        if (skills.isEmpty) return const SizedBox.shrink();
+        final featured = skills.take(3).toList();
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
+              child: Text(
+                'Featured Skills',
+                style: GoogleFonts.outfit(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey.shade800,
+                ),
+              ),
+            ),
+            SizedBox(
+              height: 180,
+              child: PageView.builder(
+                controller: PageController(viewportFraction: 0.85),
+                itemCount: featured.length,
+                itemBuilder: (context, index) {
+                  final skill = featured[index];
+                  return Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Theme.of(context).colorScheme.primary,
+                          Theme.of(context).colorScheme.primary.withValues(alpha: 0.7),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+                          blurRadius: 12,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: InkWell(
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (c) => SkillDetailPage(skill: skill)),
+                      ),
+                      borderRadius: BorderRadius.circular(24),
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                skill.category,
+                                style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            const Spacer(),
+                            Text(
+                              skill.title,
+                              style: GoogleFonts.outfit(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                               'By ${skill.providerName}',
+                               style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+      },
+      loading: () => const SizedBox(height: 180),
+      error: (e, s) => const SizedBox.shrink(),
     );
   }
 

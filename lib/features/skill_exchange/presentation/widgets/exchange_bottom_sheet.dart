@@ -106,18 +106,30 @@ class ExchangeBottomSheet extends ConsumerWidget {
                         createdAt: DateTime.now(),
                       );
                       
-                      await ref.read(swapRepositoryProvider).createRequest(request);
-                      
-                      if (context.mounted) {
-                        Navigator.pop(context); // Close bottom sheet
-                        Navigator.pop(context); // Close detail page
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Swap request sent successfully!'),
-                            behavior: SnackBarBehavior.floating,
-                            backgroundColor: Colors.green,
-                          ),
-                        );
+                      try {
+                        await ref.read(swapRepositoryProvider).createRequest(request);
+                        
+                        if (context.mounted) {
+                          Navigator.pop(context); // Close bottom sheet
+                          Navigator.pop(context); // Close detail page
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Swap request sent successfully!'),
+                              behavior: SnackBarBehavior.floating,
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Error: ${e.toString()}'),
+                              behavior: SnackBarBehavior.floating,
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
                       }
                     },
                     style: ElevatedButton.styleFrom(

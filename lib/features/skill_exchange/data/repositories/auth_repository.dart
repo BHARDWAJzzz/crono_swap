@@ -12,10 +12,11 @@ abstract class AuthRepository {
     required String bio,
     required List<String> interests,
     required DateTime dob,
+    String? avatarUrl,
   });
   Future<void> signOut();
   Future<AppUser?> getCurrentUserData();
-  Future<void> updateUserProfile({required String name, required String bio, required List<String> interests});
+  Future<void> updateUserProfile({required String name, required String bio, required List<String> interests, String? avatarUrl});
 }
 
 class FirebaseAuthRepository implements AuthRepository {
@@ -38,6 +39,7 @@ class FirebaseAuthRepository implements AuthRepository {
     required String bio,
     required List<String> interests,
     required DateTime dob,
+    String? avatarUrl,
   }) async {
     final userCredential = await _auth.createUserWithEmailAndPassword(
       email: email,
@@ -58,6 +60,7 @@ class FirebaseAuthRepository implements AuthRepository {
         'timeBalance': 10,
         'skillIds': [],
         'role': role,
+        'avatarUrl': avatarUrl,
       });
     }
   }
@@ -94,6 +97,7 @@ class FirebaseAuthRepository implements AuthRepository {
       role: role,
       dob: data['dob'] != null ? (data['dob'] as Timestamp).toDate() : null,
       status: status,
+      avatarUrl: data['avatarUrl'],
     );
   }
 
@@ -102,6 +106,7 @@ class FirebaseAuthRepository implements AuthRepository {
     required String name,
     required String bio,
     required List<String> interests,
+    String? avatarUrl,
   }) async {
     final user = _auth.currentUser;
     if (user == null) throw 'User not authenticated';
@@ -110,6 +115,7 @@ class FirebaseAuthRepository implements AuthRepository {
       'name': name,
       'bio': bio,
       'interests': interests,
+      if (avatarUrl != null) 'avatarUrl': avatarUrl,
     });
   }
 }

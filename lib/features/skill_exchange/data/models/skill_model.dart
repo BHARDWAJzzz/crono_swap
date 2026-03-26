@@ -8,6 +8,7 @@ class SkillModel extends Skill {
     required super.category,
     required super.providerId,
     required super.providerName,
+    super.providerAvatarUrl,
     required super.timeValue,
   });
 
@@ -19,6 +20,7 @@ class SkillModel extends Skill {
       category: json['category'],
       providerId: json['providerId'],
       providerName: json['providerName'] ?? 'Unknown',
+      providerAvatarUrl: json['providerAvatarUrl'],
       timeValue: json['timeValue'],
     );
   }
@@ -31,6 +33,7 @@ class SkillModel extends Skill {
       'category': category,
       'providerId': providerId,
       'providerName': providerName,
+      'providerAvatarUrl': providerAvatarUrl,
       'timeValue': timeValue,
     };
   }

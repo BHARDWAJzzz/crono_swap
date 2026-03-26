@@ -35,12 +35,26 @@ class _MainScreenState extends ConsumerState<MainScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(24),
+                      padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
-                        color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                        color: Colors.white,
                         shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                            blurRadius: 20,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
                       ),
-                      child: Icon(Icons.verified_user_outlined, size: 64, color: theme.colorScheme.primary),
+                      child: ClipOval(
+                        child: Image.asset(
+                          'assets/images/logo.png',
+                          width: 80,
+                          height: 80,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
                     ),
                     const SizedBox(height: 32),
                     Text(
@@ -84,9 +98,18 @@ class _MainScreenState extends ConsumerState<MainScreen> {
         ];
 
         return Scaffold(
-          body: IndexedStack(
-            index: _selectedIndex,
-            children: pages,
+          body: Stack(
+            children: [
+              IndexedStack(
+                index: _selectedIndex,
+                children: pages,
+              ),
+              Positioned(
+                top: 60,
+                right: 24,
+                child: _buildBalanceChip(theme, user?.timeBalance ?? 0),
+              ),
+            ],
           ),
           bottomNavigationBar: Container(
             decoration: BoxDecoration(
@@ -144,6 +167,47 @@ class _MainScreenState extends ConsumerState<MainScreen> {
       },
       loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (e, s) => Scaffold(body: Center(child: Text('Error: $e'))),
+    );
+  }
+
+  Widget _buildBalanceChip(ThemeData theme, num balance) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(30),
+        boxShadow: [
+          BoxShadow(
+            color: theme.colorScheme.primary.withValues(alpha: 0.15),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+        border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.1), width: 1.5),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primary.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.timer_outlined, size: 16, color: theme.colorScheme.primary),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            '${balance.toStringAsFixed(1)} Hrs',
+            style: GoogleFonts.outfit(
+              fontWeight: FontWeight.w900,
+              fontSize: 14,
+              color: theme.colorScheme.primary,
+              letterSpacing: -0.5,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

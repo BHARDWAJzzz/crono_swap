@@ -94,12 +94,18 @@ class SkillCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 16),
-              Text(
-                skill.title,
-                style: GoogleFonts.outfit(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: theme.colorScheme.onSurface,
+              Hero(
+                tag: 'skill_${skill.id}',
+                child: Material(
+                  color: Colors.transparent,
+                  child: Text(
+                    skill.title,
+                    style: GoogleFonts.outfit(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.onSurface,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: 6),
@@ -118,10 +124,13 @@ class SkillCard extends StatelessWidget {
                   CircleAvatar(
                     radius: 12,
                     backgroundColor: theme.colorScheme.secondaryContainer,
-                    child: Text(
-                      skill.providerName.isNotEmpty ? skill.providerName[0].toUpperCase() : '?',
-                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: theme.colorScheme.secondary),
-                    ),
+                    backgroundImage: skill.providerAvatarUrl != null ? NetworkImage(skill.providerAvatarUrl!) : null,
+                    child: skill.providerAvatarUrl == null 
+                      ? Text(
+                          skill.providerName.isNotEmpty ? skill.providerName[0].toUpperCase() : '?',
+                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: theme.colorScheme.secondary),
+                        )
+                      : null,
                   ),
                   const SizedBox(width: 8),
                   Text(

@@ -72,76 +72,69 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
 
   Widget _buildHeader(AsyncValue<AppUser?> userData, ThemeData theme) {
     final now = DateTime.now();
-    final formattedDate = DateFormat('MMMM d').format(now);
+    final formattedDate = DateFormat('EEEE, MMM d').format(now);
 
     return SliverToBoxAdapter(
       child: Container(
-        padding: const EdgeInsets.fromLTRB(24, 60, 24, 32),
-        color: theme.colorScheme.primary,
+        padding: const EdgeInsets.fromLTRB(24, 60, 24, 40),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.primary,
+          image: DecorationImage(
+            image: const AssetImage('assets/images/logo.png'),
+            opacity: 0.05,
+            alignment: Alignment.centerRight,
+            scale: 2,
+          ),
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    Icon(Icons.settings_outlined, color: theme.colorScheme.secondary, size: 28),
-                    const SizedBox(width: 12),
-                    Text(
-                      'CRONO SWAP',
-                      style: GoogleFonts.outfit(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.2,
-                      ),
-                    ),
-                  ],
-                ),
-                userData.when(
-                  data: (user) => Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.white24),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          _getInitials(user?.name ?? 'Alex'),
-                          style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      const Icon(Icons.notifications_none_rounded, color: Colors.white),
-                    ],
+                Text(
+                  'CRONO SWAP',
+                  style: GoogleFonts.outfit(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 2,
                   ),
-                  loading: () => const ShimmerLoader(width: 40, height: 40, borderRadius: 20),
-                  error: (e, s) => const Icon(Icons.error_outline, color: Colors.white),
                 ),
+                const Icon(Icons.notifications_none_rounded, color: Colors.white70),
               ],
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 40),
             userData.when(
               data: (user) => Text(
-                'Hello, ${user?.name.split(' ')[0] ?? "Alex"}!',
+                'Good ${now.hour < 12 ? "morning" : "evening"},\n${user?.name.split(' ')[0] ?? "Friend"}!',
                 style: GoogleFonts.outfit(
                   color: Colors.white,
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
+                  fontSize: 32,
+                  fontWeight: FontWeight.w900,
+                  height: 1.1,
+                  letterSpacing: -1,
                 ),
               ),
-              loading: () => const ShimmerLoader(width: 150, height: 28, borderRadius: 8),
+              loading: () => const ShimmerLoader(width: 150, height: 32, borderRadius: 8),
               error: (e, s) => const SizedBox(height: 35),
             ),
-            const SizedBox(height: 4),
-            Text(
-              "Today's $formattedDate",
-              style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 14),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                formattedDate,
+                style: GoogleFonts.outfit(
+                  color: Colors.white.withOpacity(0.7),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
-            const SizedBox(height: 24),
-            _buildSearchBar(),
           ],
         ),
       ),
@@ -153,12 +146,12 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       height: 50,
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.1),
+        color: Colors.white.withOpacity(0.1),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         children: [
-          Icon(Icons.search_rounded, color: Colors.white.withValues(alpha: 0.5)),
+          Icon(Icons.search_rounded, color: Colors.white.withOpacity(0.5)),
           const SizedBox(width: 12),
           Text(
             'Search',

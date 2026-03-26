@@ -4,8 +4,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'core/theme.dart';
 import 'features/skill_exchange/presentation/pages/auth_page.dart';
+import 'features/skill_exchange/presentation/pages/splash_screen.dart';
 import 'features/skill_exchange/presentation/providers/auth_providers.dart';
-import 'features/skill_exchange/presentation/pages/main_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,17 +24,11 @@ class CronoSwapApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final authState = ref.watch(authStateProvider);
-
     return MaterialApp(
       title: 'Crono Swap',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      home: authState.when<Widget>(
-        data: (user) => user != null ? const MainScreen() : const AuthPage(),
-        loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
-        error: (err, stack) => Scaffold(body: Center(child: Text('Error: $err'))),
-      ),
+      home: const SplashScreen(),
     );
   }
 }

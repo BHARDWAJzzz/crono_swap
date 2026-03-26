@@ -7,11 +7,13 @@ class AppUser {
   final int timeBalance; // Total "Crono" units available
   final String role; // 'user', 'moderator', 'superadmin'
   final DateTime? dob;
+  final String? avatarUrl;
   final String status; // 'pending', 'approved', 'rejected'
 
   AppUser({
     required this.id,
     required this.name,
+    this.avatarUrl,
     this.bio = '',
     this.interests = const [],
     required this.skillIds,

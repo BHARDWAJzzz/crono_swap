@@ -27,7 +27,17 @@ class FirestoreSwapRepository implements SwapRepository {
 
   @override
   Future<void> createRequest(SwapRequest request) async {
-    await _firestore.collection('swaps').doc(request.id).set(_toMap(request));
+    return _firestore.runTransaction((transaction) async {
+      final userDoc = await transaction.get(_firestore.collection('users').doc(request.senderId));
+      if (!userDoc.exists) throw 'Sender user profile not found';
+
+      final balance = userDoc.data()?['timeBalance'] ?? 0;
+      if (balance < 1) {
+        throw 'Insufficient balance. You need at least 1 hour to request a skill swap.';
+      }
+
+      transaction.set(_firestore.collection('swaps').doc(request.id), _toMap(request));
+    });
   }
 
   @override

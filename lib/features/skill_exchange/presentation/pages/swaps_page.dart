@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../domain/entities/swap_request.dart';
 import '../providers/swap_providers.dart';
+import 'chat_page.dart';
 
 class SwapsPage extends ConsumerWidget {
   const SwapsPage({super.key});
@@ -146,8 +147,26 @@ class SwapsPage extends ConsumerWidget {
                 ],
               ),
             ],
+            if (swap.status == SwapRequestStatus.accepted || swap.status == SwapRequestStatus.completed) ...[
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (c) => ChatPage(swap: swap)),
+                  ),
+                  icon: const Icon(Icons.chat_bubble_outline_rounded, size: 18),
+                  label: const Text('Chat with Partner'),
+                  style: OutlinedButton.styleFrom(
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                ),
+              ),
+            ],
             if (!isIncoming && swap.status == SwapRequestStatus.accepted) ...[
-              const SizedBox(height: 20),
+              const SizedBox(height: 12),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(

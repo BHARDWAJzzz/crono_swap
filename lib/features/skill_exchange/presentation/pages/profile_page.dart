@@ -54,7 +54,10 @@ class ProfilePage extends ConsumerWidget {
                       child: CircleAvatar(
                         radius: 54,
                         backgroundColor: theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
-                        child: Icon(Icons.person_rounded, size: 54, color: theme.colorScheme.primary),
+                        backgroundImage: user.avatarUrl != null ? NetworkImage(user.avatarUrl!) : null,
+                        child: user.avatarUrl == null 
+                          ? Icon(Icons.person_rounded, size: 54, color: theme.colorScheme.primary)
+                          : null,
                       ),
                     ),
                     const SizedBox(height: 20),

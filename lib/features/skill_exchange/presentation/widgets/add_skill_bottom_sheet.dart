@@ -115,6 +115,7 @@ class _AddSkillBottomSheetState extends ConsumerState<AddSkillBottomSheet> {
                       category: _category,
                       providerId: user.id,
                       providerName: user.name,
+                      providerAvatarUrl: user.avatarUrl,
                       timeValue: _timeValue,
                     );
                     await ref.read(skillRepositoryProvider).addSkill(newSkill);

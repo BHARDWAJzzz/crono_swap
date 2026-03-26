@@ -5,6 +5,7 @@ class Skill {
   final String category;
   final String providerId;
   final String providerName;
+  final String? providerAvatarUrl;
   final int timeValue; // In "Crono" units or hours
 
   Skill({
@@ -14,6 +15,7 @@ class Skill {
     required this.category,
     required this.providerId,
     required this.providerName,
+    this.providerAvatarUrl,
     required this.timeValue,
   });
 }

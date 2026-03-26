@@ -29,6 +29,7 @@ class FirestoreSkillRepository implements SkillRepository {
       timeValue: skill.timeValue,
       providerId: skill.providerId,
       providerName: skill.providerName,
+      providerAvatarUrl: skill.providerAvatarUrl,
     );
     await _firestore.collection(_collection).doc(skill.id).set(model.toJson());
   }
@@ -43,6 +44,7 @@ class FirestoreSkillRepository implements SkillRepository {
       timeValue: skill.timeValue,
       providerId: skill.providerId,
       providerName: skill.providerName,
+      providerAvatarUrl: skill.providerAvatarUrl,
     );
     await _firestore.collection(_collection).doc(skill.id).update(model.toJson());
   }
