@@ -140,7 +140,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               SizedBox(
-                                height: 320,
+                                height: 350,
                                 child: PageView(
                                   controller: _pageController,
                                   physics: const NeverScrollableScrollPhysics(),
