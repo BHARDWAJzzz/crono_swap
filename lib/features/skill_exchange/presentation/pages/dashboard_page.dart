@@ -38,7 +38,9 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildOverviewSection(theme, skillsAsync),
+                  const SizedBox(height: 20),
+                  _buildOverviewSection(theme, skillsAsync, userDataAsync),
+                  const SizedBox(height: 10),
                   _buildRecentActivity(theme, skillsAsync),
                   const SizedBox(height: 100),
                 ],
@@ -161,43 +163,47 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     );
   }
 
-  Widget _buildOverviewSection(ThemeData theme, AsyncValue<List<Skill>> skillsAsync) {
+  Widget _buildOverviewSection(ThemeData theme, AsyncValue<List<Skill>> skillsAsync, AsyncValue<AppUser?> userDataAsync) {
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          skillsAsync.when(
-            data: (skills) => Row(
+          userDataAsync.when(
+            data: (user) => Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Swap Overview', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                    Text('Total Skills: ${skills.length}', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+                    const Text('Your Stats', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                    Text('Level ${user?.level ?? 1} ${user?.levelTitle ?? 'Newcomer'}', style: TextStyle(color: theme.colorScheme.secondary, fontWeight: FontWeight.bold, fontSize: 13)),
                   ],
                 ),
-                Text('Active Trades: 0', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+                Text('${user?.swapsCompleted ?? 0} Swaps Done', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
               ],
             ),
             loading: () => const SizedBox(height: 40),
-            error: (e, s) => const Text('Error loading skills'),
+            error: (e, s) => const Text('Error loading stats'),
           ),
           const SizedBox(height: 20),
-          Row(
-            children: [
-              Expanded(child: _buildOverviewCard(theme, 'Python Coding', 'Master programming & algorithms', '48 Lessons | 85% Complete')),
-              const SizedBox(width: 16),
-              Expanded(child: _buildOverviewCard(theme, 'UI/UX Design', 'Create beautiful user interfaces', '62 Lessons | 70% Complete', isHighlight: true)),
-            ],
+          userDataAsync.when(
+            data: (user) => Row(
+              children: [
+                Expanded(child: _buildStatCard(theme, 'Learning', '${user?.boughtLectureIds.length ?? 0} Lectures', 'Mastering new skills', Icons.school_rounded)),
+                const SizedBox(width: 16),
+                Expanded(child: _buildStatCard(theme, 'Teaching', '${user?.lecturesSold ?? 0} Sold', 'Sharing knowledge', Icons.record_voice_over_rounded, isHighlight: true)),
+              ],
+            ),
+            loading: () => const SizedBox(height: 100),
+            error: (_, __) => const SizedBox.shrink(),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildOverviewCard(ThemeData theme, String title, String subtitle, String status, {bool isHighlight = false}) {
+  Widget _buildStatCard(ThemeData theme, String title, String value, String subtitle, IconData icon, {bool isHighlight = false}) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -215,41 +221,25 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
-              isHighlight ? Icons.brush_rounded : Icons.code_rounded,
+              icon,
               color: theme.colorScheme.secondary,
               size: 24,
             ),
           ),
           const SizedBox(height: 16),
           Text(
+            value,
+            style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20),
+          ),
+          const SizedBox(height: 4),
+          Text(
             title,
-            style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+            style: GoogleFonts.outfit(color: theme.colorScheme.secondary, fontWeight: FontWeight.bold, fontSize: 12),
           ),
           const SizedBox(height: 4),
           Text(
             subtitle,
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 11, height: 1.2),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            status,
-            style: TextStyle(color: theme.colorScheme.secondary, fontSize: 10, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 16),
-          InkWell(
-            onTap: () {},
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.secondary,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-              ),
-              child: const Center(
-                child: Text('Continue', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-              ),
-            ),
+            style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 10, height: 1.2),
           ),
         ],
       ),

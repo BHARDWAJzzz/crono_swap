@@ -6,13 +6,40 @@ import '../../domain/entities/swap_request.dart';
 import '../providers/auth_providers.dart';
 import '../providers/swap_providers.dart';
 
-class ExchangeBottomSheet extends ConsumerWidget {
+class ExchangeBottomSheet extends ConsumerStatefulWidget {
   final Skill skill;
-
   const ExchangeBottomSheet({super.key, required this.skill});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ExchangeBottomSheet> createState() => _ExchangeBottomSheetState();
+}
+
+class _ExchangeBottomSheetState extends ConsumerState<ExchangeBottomSheet> {
+  DateTime? _selectedDateTime;
+
+  Future<void> _pickDateTime() async {
+    final date = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now().add(const Duration(days: 1)),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 30)),
+    );
+    if (date == null) return;
+
+    if (!mounted) return;
+    final time = await showTimePicker(
+      context: context,
+      initialTime: const TimeOfDay(hour: 10, minute: 0),
+    );
+    if (time == null) return;
+
+    setState(() {
+      _selectedDateTime = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final userAsync = ref.watch(userDataProvider);
 
@@ -50,10 +77,44 @@ class ExchangeBottomSheet extends ConsumerWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'You are requesting "${skill.title}" for ${skill.timeValue} units from ${skill.providerName}.',
+            'You are requesting "${widget.skill.title}" for ${widget.skill.timeValue} units from ${widget.skill.providerName}.',
             style: theme.textTheme.bodyMedium?.copyWith(
               color: Colors.grey.shade600,
               height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'Schedule Your Session',
+            style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 12),
+          InkWell(
+            onTap: _pickDateTime,
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.calendar_today_rounded, size: 20, color: theme.colorScheme.primary),
+                  const SizedBox(width: 12),
+                  Text(
+                    _selectedDateTime == null 
+                      ? 'Select date and time' 
+                      : '${_selectedDateTime!.day}/${_selectedDateTime!.month}/${_selectedDateTime!.year} at ${TimeOfDay.fromDateTime(_selectedDateTime!).format(context)}',
+                    style: TextStyle(
+                      color: _selectedDateTime == null ? Colors.grey : Colors.black87,
+                      fontWeight: _selectedDateTime == null ? FontWeight.normal : FontWeight.bold,
+                    ),
+                  ),
+                  const Spacer(),
+                  Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey.shade400),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 24),
@@ -94,19 +155,20 @@ class ExchangeBottomSheet extends ConsumerWidget {
                 const SizedBox(width: 16),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: user == null ? null : () async {
+                    onPressed: (user == null || _selectedDateTime == null) ? null : () async {
                       final request = SwapRequest(
                         id: const Uuid().v4(),
                         senderId: user.id,
                         senderName: user.name,
                         senderAvatarUrl: user.avatarUrl,
-                        receiverId: skill.providerId,
-                        receiverName: skill.providerName,
-                        receiverAvatarUrl: skill.providerAvatarUrl,
-                        skillId: skill.id,
-                        skillTitle: skill.title,
-                        timeValue: skill.timeValue,
+                        receiverId: widget.skill.providerId,
+                        receiverName: widget.skill.providerName,
+                        receiverAvatarUrl: widget.skill.providerAvatarUrl,
+                        skillId: widget.skill.id,
+                        skillTitle: widget.skill.title,
+                        timeValue: widget.skill.timeValue,
                         createdAt: DateTime.now(),
+                        scheduledAt: _selectedDateTime,
                       );
                       
                       try {

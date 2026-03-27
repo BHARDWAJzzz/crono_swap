@@ -19,82 +19,103 @@ class _LecturesPageState extends ConsumerState<LecturesPage> {
   
   @override
   Widget build(BuildContext context) {
-    final lecturesAsync = ref.watch(lectureListProvider);
     final theme = Theme.of(context);
 
-    return Scaffold(
-      backgroundColor: theme.colorScheme.surface,
-      appBar: AppBar(
-        title: Text('Knowledge Marketplace', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add_circle_outline_rounded),
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (c) => const LectureUploadPage())),
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        backgroundColor: theme.colorScheme.surface,
+        appBar: AppBar(
+          title: Text('Knowledge Hub', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.add_circle_outline_rounded),
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (c) => const LectureUploadPage())),
+            ),
+            const SizedBox(width: 8),
+          ],
+          bottom: TabBar(
+            labelStyle: GoogleFonts.outfit(fontWeight: FontWeight.bold),
+            unselectedLabelStyle: GoogleFonts.outfit(),
+            indicatorColor: theme.colorScheme.primary,
+            labelColor: theme.colorScheme.primary,
+            tabs: const [
+              Tab(text: 'Marketplace'),
+              Tab(text: 'My Library'),
+            ],
           ),
-          const SizedBox(width: 8),
-        ],
+        ),
+        body: TabBarView(
+          children: [
+            _buildLectureList(ref.watch(lectureListProvider), 'No lectures found'),
+            _buildLectureList(ref.watch(myPurchasedLecturesProvider), 'You haven\'t purchased any lectures yet'),
+          ],
+        ),
       ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-            child: TextField(
-              onChanged: (v) => setState(() => _searchQuery = v),
-              decoration: InputDecoration(
-                hintText: 'Search for courses, videos...',
-                prefixIcon: const Icon(Icons.search_rounded),
-                filled: true,
-                fillColor: Colors.grey.shade100,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-              ),
+    );
+  }
+
+  Widget _buildLectureList(AsyncValue<List<Lecture>> lecturesAsync, String emptyMessage) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          child: TextField(
+            onChanged: (v) => setState(() => _searchQuery = v),
+            decoration: InputDecoration(
+              hintText: 'Search title or content...',
+              prefixIcon: const Icon(Icons.search_rounded),
+              filled: true,
+              fillColor: Colors.grey.shade100,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
             ),
           ),
-          Expanded(
-            child: lecturesAsync.when(
-              data: (lectures) {
-                final filtered = lectures.where((l) => 
-                  l.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-                  l.description.toLowerCase().contains(_searchQuery.toLowerCase())
-                ).toList();
+        ),
+        Expanded(
+          child: lecturesAsync.when(
+            data: (lectures) {
+              final filtered = lectures.where((l) => 
+                l.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+                l.description.toLowerCase().contains(_searchQuery.toLowerCase())
+              ).toList();
 
-                if (filtered.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.school_outlined, size: 64, color: Colors.grey.shade300),
-                        const SizedBox(height: 16),
-                        Text('No lectures found', style: TextStyle(color: Colors.grey.shade500)),
-                      ],
-                    ),
-                  );
-                }
-
-                return GridView.builder(
-                  padding: const EdgeInsets.all(24),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                    childAspectRatio: 0.75,
+              if (filtered.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.school_outlined, size: 64, color: Colors.grey.shade300),
+                      const SizedBox(height: 16),
+                      Text(emptyMessage, style: TextStyle(color: Colors.grey.shade500)),
+                    ],
                   ),
-                  itemCount: filtered.length,
-                  itemBuilder: (context, index) => _LectureCard(lecture: filtered[index]),
                 );
-              },
-              loading: () => GridView.builder(
+              }
+
+              return GridView.builder(
                 padding: const EdgeInsets.all(24),
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2, crossAxisSpacing: 16, mainAxisSpacing: 16, childAspectRatio: 0.75,
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 16,
+                  childAspectRatio: 0.75,
                 ),
-                itemCount: 4,
-                itemBuilder: (e, i) => const ShimmerLoader(width: 150, height: 200, borderRadius: 20),
+                itemCount: filtered.length,
+                itemBuilder: (context, index) => _LectureCard(lecture: filtered[index]),
+              );
+            },
+            loading: () => GridView.builder(
+              padding: const EdgeInsets.all(24),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2, crossAxisSpacing: 16, mainAxisSpacing: 16, childAspectRatio: 0.75,
               ),
-              error: (e, s) => Center(child: Text('Error: $e')),
+              itemCount: 4,
+              itemBuilder: (e, i) => const ShimmerLoader(width: 150, height: 200, borderRadius: 20),
             ),
+            error: (e, s) => Center(child: Text('Error: $e')),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -156,6 +177,11 @@ class _LectureCard extends StatelessWidget {
                       Text(
                         '${lecture.priceInHours} Hrs',
                         style: TextStyle(color: theme.colorScheme.primary, fontWeight: FontWeight.bold, fontSize: 12),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '(${lecture.durationMinutes}m)',
+                        style: TextStyle(color: Colors.grey.shade400, fontSize: 10),
                       ),
                     ],
                   ),

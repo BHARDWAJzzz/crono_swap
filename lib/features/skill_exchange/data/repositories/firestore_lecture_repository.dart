@@ -7,6 +7,7 @@ import '../models/lecture_model.dart';
 import '../../domain/entities/transaction.dart';
 import '../models/transaction_model.dart';
 import 'package:uuid/uuid.dart';
+import '../../../../core/services/gamification_service.dart';
 
 class FirestoreLectureRepository implements LectureRepository {
   final firestore.FirebaseFirestore _firestore = firestore.FirebaseFirestore.instance;
@@ -53,6 +54,7 @@ class FirestoreLectureRepository implements LectureRepository {
       providerId: lecture.providerId,
       providerName: lecture.providerName,
       priceInHours: lecture.priceInHours,
+      durationMinutes: lecture.durationMinutes,
       type: lecture.type,
       contentUrl: lecture.contentUrl,
       createdAt: lecture.createdAt,
@@ -90,10 +92,14 @@ class FirestoreLectureRepository implements LectureRepository {
         'timeBalance': firestore.FieldValue.increment(-lecture.priceInHours),
       });
 
-      // 2. Add to seller
+      // 2. Add to seller and increment sales
       transaction.update(sellerDoc.reference, {
         'timeBalance': firestore.FieldValue.increment(lecture.priceInHours),
+        'lecturesSold': firestore.FieldValue.increment(1),
       });
+
+      // 3. Award XP for selling
+      await GamificationService().onLectureSold(lecture.providerId);
 
       // Log transactions for history
       final now = DateTime.now();

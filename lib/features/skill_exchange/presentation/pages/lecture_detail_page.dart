@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../domain/entities/lecture.dart';
 import '../providers/auth_providers.dart';
 import '../providers/lecture_providers.dart';
@@ -47,6 +48,19 @@ class _LectureDetailPageState extends ConsumerState<LectureDetailPage> {
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _launchContent() async {
+    final url = Uri.parse(widget.lecture.contentUrl);
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open content. The URL might be invalid.')),
+        );
+      }
     }
   }
 
@@ -108,6 +122,14 @@ class _LectureDetailPageState extends ConsumerState<LectureDetailPage> {
                           color: theme.colorScheme.primary,
                         ),
                       ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '(${widget.lecture.durationMinutes} min)',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey.shade500,
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 16),
@@ -147,14 +169,7 @@ class _LectureDetailPageState extends ConsumerState<LectureDetailPage> {
           child: _isLoading 
             ? const Center(child: CircularProgressIndicator())
             : ElevatedButton(
-                onPressed: (isBought || isOwner) 
-                  ? () {
-                    // Open content logic
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Opening lecture content...')),
-                    );
-                  } 
-                  : _buyLecture,
+                onPressed: (isBought || isOwner) ? _launchContent : _buyLecture,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: (isBought || isOwner) ? Colors.green.shade600 : theme.colorScheme.primary,
                   foregroundColor: Colors.white,
@@ -172,3 +187,4 @@ class _LectureDetailPageState extends ConsumerState<LectureDetailPage> {
     );
   }
 }
+

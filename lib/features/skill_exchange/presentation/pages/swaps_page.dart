@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../domain/entities/swap_request.dart';
 import '../providers/swap_providers.dart';
 import '../providers/auth_providers.dart';
@@ -184,9 +185,22 @@ class SwapsPage extends ConsumerWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'REEEIVED ON: $dateStr',
+                    'RECEIVED ON: $dateStr',
                     style: TextStyle(color: Colors.grey.shade400, fontSize: 10, fontWeight: FontWeight.w600, letterSpacing: 0.5),
                   ),
+                  if (swap.scheduledAt != null) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(Icons.event_available_rounded, size: 12, color: Colors.green.shade600),
+                        const SizedBox(width: 4),
+                        Text(
+                          'SCHEDULED: ${DateFormat('MMM d, HH:mm').format(swap.scheduledAt!)}',
+                          style: TextStyle(color: Colors.green.shade600, fontSize: 10, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -262,7 +276,7 @@ class SwapsPage extends ConsumerWidget {
                         ),
                       ),
                     ],
-                   if (swap.status == SwapRequestStatus.completed) ...[
+                    if (swap.status == SwapRequestStatus.completed) ...[
                       const SizedBox(width: 12),
                       Expanded(
                         child: ElevatedButton.icon(
@@ -298,6 +312,22 @@ class SwapsPage extends ConsumerWidget {
                   ],
                 ),
               ),
+            // Report button for accepted/completed swaps
+            if (swap.status == SwapRequestStatus.accepted || swap.status == SwapRequestStatus.completed)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                child: TextButton.icon(
+                  onPressed: () {
+                    final user = ref.read(userDataProvider).value;
+                    if (user == null) return;
+                    final reportedId = user.id == swap.senderId ? swap.receiverId : swap.senderId;
+                    final reportedName = user.id == swap.senderId ? swap.receiverName : swap.senderName;
+                    _showReportDialog(context, user.id, user.name, reportedId, reportedName, swap.id);
+                  },
+                  icon: Icon(Icons.flag_outlined, size: 16, color: Colors.red.shade300),
+                  label: Text('Report issue with this swap', style: TextStyle(color: Colors.red.shade300, fontSize: 12)),
+                ),
+              ),
           ],
         ),
       ),
@@ -306,6 +336,80 @@ class SwapsPage extends ConsumerWidget {
 
   void _updateStatus(WidgetRef ref, String requestId, SwapRequestStatus status) {
     ref.read(swapRepositoryProvider).updateRequestStatus(requestId, status);
+  }
+
+  void _showReportDialog(BuildContext context, String reporterId, String reporterName, String reportedId, String reportedName, String swapId) {
+    String? selectedReason;
+    final detailsController = TextEditingController();
+    final reasons = ['Did not show up', 'Incomplete session', 'Inappropriate behaviour', 'Fraud or scam', 'Other'];
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text('Report Issue', style: TextStyle(fontWeight: FontWeight.bold)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Reporting: $reportedName', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                value: selectedReason,
+                hint: const Text('Select a reason'),
+                items: reasons.map((r) => DropdownMenuItem(value: r, child: Text(r, style: const TextStyle(fontSize: 13)))).toList(),
+                onChanged: (v) => setDialogState(() => selectedReason = v),
+                decoration: InputDecoration(
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: detailsController,
+                maxLines: 3,
+                decoration: InputDecoration(
+                  labelText: 'Additional details (optional)',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  contentPadding: const EdgeInsets.all(12),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            ElevatedButton(
+              onPressed: selectedReason == null ? null : () async {
+                await FirebaseFirestore.instance.collection('reports').add({
+                  'reporterId': reporterId,
+                  'reporterName': reporterName,
+                  'reportedUserId': reportedId,
+                  'reportedUserName': reportedName,
+                  'swapId': swapId,
+                  'reason': selectedReason,
+                  'details': detailsController.text.trim(),
+                  'status': 'open',
+                  'createdAt': Timestamp.now(),
+                });
+                if (ctx.mounted) Navigator.pop(ctx);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Report submitted. Our team will review it.'),
+                      backgroundColor: Colors.orange,
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade700, foregroundColor: Colors.white),
+              child: const Text('Submit Report'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Color _getStatusColor(SwapRequestStatus status) {

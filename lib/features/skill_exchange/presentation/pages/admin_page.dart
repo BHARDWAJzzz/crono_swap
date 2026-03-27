@@ -15,7 +15,7 @@ class AdminPage extends ConsumerWidget {
     final theme = Theme.of(context);
 
     return DefaultTabController(
-      length: 3,
+      length: 4,
       child: Scaffold(
         backgroundColor: theme.colorScheme.surface,
         appBar: AppBar(
@@ -33,19 +33,30 @@ class AdminPage extends ConsumerWidget {
             labelColor: Colors.red.shade900,
             unselectedLabelColor: Colors.red.withValues(alpha: 0.5),
             indicatorColor: Colors.red.shade900,
+            isScrollable: true,
+            tabAlignment: TabAlignment.start,
             tabs: const [
               Tab(text: 'Content'),
-              Tab(text: 'User Access'),
-              Tab(text: 'Config'),
+              Tab(text: 'Onboarding'),
+              Tab(text: 'Users'),
+              Tab(text: 'Reports'),
             ],
           ),
         ),
         body: TabBarView(
           children: [
             _buildContentTab(theme, skillsAsync),
-            _buildUserAccessTab(theme, ref),
-            const AdminConfigPage(),
+            _buildOnboardingTab(theme, ref),
+            const _AdminUsersTab(),
+            const _AdminReportsTab(),
           ],
+        ),
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminConfigPage())),
+          backgroundColor: Colors.red.shade700,
+          foregroundColor: Colors.white,
+          icon: const Icon(Icons.settings_rounded),
+          label: const Text('Config'),
         ),
       ),
     );
@@ -84,7 +95,9 @@ class AdminPage extends ConsumerWidget {
                     subtitle: Text('By ${skill.providerName}'),
                     trailing: IconButton(
                       icon: const Icon(Icons.delete_outline_rounded, color: Colors.red),
-                      onPressed: () {},
+                      onPressed: () async {
+                        await FirebaseFirestore.instance.collection('skills').doc(skill.id).delete();
+                      },
                     ),
                   ),
                 );
@@ -98,7 +111,8 @@ class AdminPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildUserAccessTab(ThemeData theme, WidgetRef ref) {
+  /// Original onboarding approval tab — only shows pending users
+  Widget _buildOnboardingTab(ThemeData theme, WidgetRef ref) {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('users')
@@ -128,7 +142,7 @@ class AdminPage extends ConsumerWidget {
           itemBuilder: (context, index) {
             final data = docs[index].data() as Map<String, dynamic>;
             final userId = docs[index].id;
-            
+
             return Card(
               margin: const EdgeInsets.only(bottom: 12),
               shape: RoundedRectangleBorder(
@@ -201,9 +215,15 @@ class AdminPage extends ConsumerWidget {
         children: [
           _buildStatItem('Skills', skills.when(data: (s) => s.length.toString(), loading: () => '...', error: (e, s) => '0')),
           const SizedBox(width: 40),
-          _buildStatItem('Reports', '0'),
+          StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance.collection('reports').where('status', isEqualTo: 'open').snapshots(),
+            builder: (_, snap) => _buildStatItem('Reports', snap.data?.docs.length.toString() ?? '...'),
+          ),
           const SizedBox(width: 40),
-          _buildStatItem('Flags', '2'),
+          StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance.collection('users').where('isActive', isEqualTo: false).snapshots(),
+            builder: (_, snap) => _buildStatItem('Suspended', snap.data?.docs.length.toString() ?? '0'),
+          ),
         ],
       ),
     );
@@ -265,6 +285,484 @@ class AdminPage extends ConsumerWidget {
     final uri = Uri.parse(url);
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri);
+    }
+  }
+}
+
+// ----------- Users Tab -----------
+
+class _AdminUsersTab extends StatefulWidget {
+  const _AdminUsersTab();
+
+  @override
+  State<_AdminUsersTab> createState() => _AdminUsersTabState();
+}
+
+class _AdminUsersTabState extends State<_AdminUsersTab> {
+  String _search = '';
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: TextField(
+            onChanged: (v) => setState(() => _search = v.toLowerCase()),
+            decoration: InputDecoration(
+              hintText: 'Search by name or email...',
+              prefixIcon: const Icon(Icons.search_rounded),
+              filled: true,
+              fillColor: Colors.grey.shade100,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide.none,
+              ),
+              contentPadding: const EdgeInsets.symmetric(vertical: 12),
+            ),
+          ),
+        ),
+        Expanded(
+          child: StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance.collection('users').orderBy('name').snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.hasError) return Center(child: Text('Error: ${snapshot.error}'));
+              if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+
+              final docs = (snapshot.data?.docs ?? []).where((doc) {
+                final data = doc.data() as Map<String, dynamic>;
+                final name = (data['name'] ?? '').toLowerCase();
+                final email = (data['email'] ?? '').toLowerCase();
+                return _search.isEmpty || name.contains(_search) || email.contains(_search);
+              }).toList();
+
+              if (docs.isEmpty) {
+                return Center(child: Text('No users found', style: TextStyle(color: Colors.grey.shade400)));
+              }
+
+              return ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: docs.length,
+                itemBuilder: (context, index) {
+                  final data = docs[index].data() as Map<String, dynamic>;
+                  final userId = docs[index].id;
+                  final isActive = data['isActive'] ?? true;
+                  final balance = (data['timeBalance'] ?? 0).toDouble();
+
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: BorderSide(
+                        color: isActive ? Colors.grey.shade100 : Colors.red.shade100,
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 20,
+                                backgroundColor: Colors.grey.shade200,
+                                backgroundImage: data['avatarUrl'] != null ? NetworkImage(data['avatarUrl']) : null,
+                                child: data['avatarUrl'] == null ? Text(
+                                  (data['name'] ?? '?')[0].toUpperCase(),
+                                  style: const TextStyle(fontWeight: FontWeight.bold),
+                                ) : null,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(data['name'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                                    Text(data['email'] ?? '', style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
+                                  ],
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: isActive ? Colors.green.shade50 : Colors.red.shade50,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  isActive ? 'ACTIVE' : 'SUSPENDED',
+                                  style: TextStyle(
+                                    color: isActive ? Colors.green.shade700 : Colors.red.shade700,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Icon(Icons.timer_outlined, size: 14, color: Colors.grey.shade500),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${balance.toStringAsFixed(1)} credits',
+                                style: TextStyle(color: Colors.grey.shade600, fontSize: 13, fontWeight: FontWeight.w600),
+                              ),
+                              const Spacer(),
+                              Text(
+                                'Level ${data['level'] ?? 1}',
+                                style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: () => _showAddCreditDialog(context, userId, data['name'] ?? 'User', balance),
+                                  icon: const Icon(Icons.add_card_rounded, size: 16),
+                                  label: const Text('Credits'),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: Colors.blue.shade700,
+                                    side: BorderSide(color: Colors.blue.shade200),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                    padding: const EdgeInsets.symmetric(vertical: 10),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: ElevatedButton.icon(
+                                  onPressed: () => _toggleUserActive(userId, isActive),
+                                  icon: Icon(isActive ? Icons.block_rounded : Icons.check_circle_outline_rounded, size: 16),
+                                  label: Text(isActive ? 'Suspend' : 'Restore'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: isActive ? Colors.red.shade50 : Colors.green.shade50,
+                                    foregroundColor: isActive ? Colors.red.shade700 : Colors.green.shade700,
+                                    elevation: 0,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                    padding: const EdgeInsets.symmetric(vertical: 10),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _toggleUserActive(String userId, bool currentlyActive) async {
+    final newValue = !currentlyActive;
+    await FirebaseFirestore.instance.collection('users').doc(userId).update({'isActive': newValue});
+  }
+
+  void _showAddCreditDialog(BuildContext context, String userId, String userName, double currentBalance) {
+    final controller = TextEditingController();
+    String? note;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text('Adjust Credits', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('User: $userName', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+              Text('Current: ${currentBalance.toStringAsFixed(1)} hrs', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+              const SizedBox(height: 16),
+              TextField(
+                controller: controller,
+                keyboardType: const TextInputType.numberWithOptions(decimal: false, signed: true),
+                decoration: InputDecoration(
+                  labelText: 'Amount (+ to add, - to deduct)',
+                  prefixIcon: const Icon(Icons.add_card_rounded),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  helperText: 'e.g. 5 to add 5 hrs, -3 to remove 3 hrs',
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                onChanged: (v) => note = v,
+                decoration: InputDecoration(
+                  labelText: 'Reason (optional)',
+                  prefixIcon: const Icon(Icons.note_rounded),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            ElevatedButton(
+              onPressed: () async {
+                final amount = double.tryParse(controller.text);
+                if (amount == null) return;
+                await _adjustCredits(userId, amount, note);
+                if (ctx.mounted) Navigator.pop(ctx);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('${amount >= 0 ? "Added" : "Deducted"} ${amount.abs()} credits for $userName'),
+                      backgroundColor: Colors.green,
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.blue.shade700, foregroundColor: Colors.white),
+              child: const Text('Apply'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _adjustCredits(String userId, double amount, String? reason) async {
+    final batch = FirebaseFirestore.instance.batch();
+    final userRef = FirebaseFirestore.instance.collection('users').doc(userId);
+
+    batch.update(userRef, {
+      'timeBalance': FieldValue.increment(amount),
+    });
+
+    // Log the admin credit transaction
+    final txRef = FirebaseFirestore.instance.collection('transactions').doc();
+    batch.set(txRef, {
+      'userId': userId,
+      'type': 'adminAdjustment',
+      'amount': amount,
+      'description': reason ?? 'Admin credit adjustment',
+      'createdAt': Timestamp.now(),
+    });
+
+    await batch.commit();
+  }
+}
+
+// ----------- Reports Tab -----------
+
+class _AdminReportsTab extends StatefulWidget {
+  const _AdminReportsTab();
+
+  @override
+  State<_AdminReportsTab> createState() => _AdminReportsTabState();
+}
+
+class _AdminReportsTabState extends State<_AdminReportsTab> {
+  String _filter = 'open';
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              _filterChip('Open', 'open'),
+              const SizedBox(width: 8),
+              _filterChip('Resolved', 'resolved'),
+              const SizedBox(width: 8),
+              _filterChip('Dismissed', 'dismissed'),
+            ],
+          ),
+        ),
+        Expanded(
+          child: StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('reports')
+                .where('status', isEqualTo: _filter)
+                .orderBy('createdAt', descending: true)
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.hasError) return Center(child: Text('Error: ${snapshot.error}'));
+              if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+
+              final docs = snapshot.data?.docs ?? [];
+              if (docs.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.check_circle_outline_rounded, size: 64, color: Colors.green.shade200),
+                      const SizedBox(height: 16),
+                      Text('No ${_filter} reports 🎉', style: TextStyle(color: Colors.grey.shade400, fontSize: 16)),
+                    ],
+                  ),
+                );
+              }
+
+              return ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: docs.length,
+                itemBuilder: (context, index) {
+                  final data = docs[index].data() as Map<String, dynamic>;
+                  final reportId = docs[index].id;
+                  final createdAt = (data['createdAt'] as Timestamp?)?.toDate();
+
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: BorderSide(color: Colors.orange.shade100),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.orange.shade50,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Icon(Icons.flag_rounded, color: Colors.orange.shade700, size: 18),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      data['reason'] ?? 'No reason given',
+                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                    ),
+                                    if (createdAt != null)
+                                      Text(
+                                        '${createdAt.day}/${createdAt.month}/${createdAt.year}',
+                                        style: TextStyle(color: Colors.grey.shade400, fontSize: 11),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (data['details'] != null && (data['details'] as String).isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade50,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(data['details'], style: TextStyle(color: Colors.grey.shade700, fontSize: 13, height: 1.4)),
+                            ),
+                          ],
+                          const SizedBox(height: 8),
+                          Text(
+                            'Reporter: ${data['reporterName'] ?? 'Anonymous'} • Against: ${data['reportedUserName'] ?? 'Unknown'}',
+                            style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+                          ),
+                          if (_filter == 'open') ...[
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton(
+                                    onPressed: () => _updateReport(reportId, 'dismissed'),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: Colors.grey,
+                                      side: BorderSide(color: Colors.grey.shade300),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                    ),
+                                    child: const Text('Dismiss'),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: ElevatedButton(
+                                    onPressed: () => _suspendReportedUser(context, data, reportId),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.red.shade700,
+                                      foregroundColor: Colors.white,
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                    ),
+                                    child: const Text('Suspend User'),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _filterChip(String label, String value) {
+    final isSelected = _filter == value;
+    return GestureDetector(
+      onTap: () => setState(() => _filter = value),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.red.shade700 : Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.white : Colors.grey.shade600,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            fontSize: 13,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _updateReport(String reportId, String status) async {
+    await FirebaseFirestore.instance.collection('reports').doc(reportId).update({'status': status});
+  }
+
+  Future<void> _suspendReportedUser(BuildContext context, Map<String, dynamic> reportData, String reportId) async {
+    final reportedUserId = reportData['reportedUserId'];
+    if (reportedUserId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No user ID found in report')));
+      return;
+    }
+
+    final batch = FirebaseFirestore.instance.batch();
+    batch.update(FirebaseFirestore.instance.collection('users').doc(reportedUserId), {'isActive': false});
+    batch.update(FirebaseFirestore.instance.collection('reports').doc(reportId), {'status': 'resolved'});
+    await batch.commit();
+
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${reportData['reportedUserName'] ?? 'User'} has been suspended and report resolved.'),
+          backgroundColor: Colors.red.shade700,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
   }
 }

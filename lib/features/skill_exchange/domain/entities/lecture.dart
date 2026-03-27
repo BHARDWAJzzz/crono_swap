@@ -9,6 +9,7 @@ class Lecture {
   final String? previewUrl;
   final String contentUrl; // The actual file (video/PDF)
   final int priceInHours;
+  final int durationMinutes;
   final LectureType type;
   final DateTime createdAt;
   final List<String> categories;
@@ -22,6 +23,7 @@ class Lecture {
     this.previewUrl,
     required this.contentUrl,
     required this.priceInHours,
+    required this.durationMinutes,
     required this.type,
     required this.createdAt,
     required this.categories,

@@ -19,6 +19,7 @@ class SwapRequest {
   final int timeValue;
   final SwapRequestStatus status;
   final DateTime createdAt;
+  final DateTime? scheduledAt;
 
   SwapRequest({
     required this.id,
@@ -33,10 +34,12 @@ class SwapRequest {
     required this.timeValue,
     this.status = SwapRequestStatus.pending,
     required this.createdAt,
+    this.scheduledAt,
   });
 
   SwapRequest copyWith({
     SwapRequestStatus? status,
+    DateTime? scheduledAt,
   }) {
     return SwapRequest(
       id: id,
@@ -51,6 +54,7 @@ class SwapRequest {
       timeValue: timeValue,
       status: status ?? this.status,
       createdAt: createdAt,
+      scheduledAt: scheduledAt ?? this.scheduledAt,
     );
   }
 }

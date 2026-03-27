@@ -21,10 +21,13 @@ service firebase.storage {
       allow write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // Lecture files: Authenticated users can read (for now), owner can write
+    // Lecture files: Owner can read/write, buyers can read
     match /lectures/{sellerId}/{fileName} {
-      allow read: if request.auth != null;
       allow write: if request.auth != null && request.auth.uid == sellerId;
+      allow read: if request.auth != null && (
+        request.auth.uid == sellerId || 
+        firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.boughtLectureIds.hasAny([fileName.split('_')[0]])
+      );
     }
   }
 }

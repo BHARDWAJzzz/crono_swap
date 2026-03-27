@@ -4,6 +4,7 @@ import '../../domain/repositories/swap_repository.dart';
 import '../../domain/entities/transaction.dart';
 import '../models/transaction_model.dart';
 import 'package:uuid/uuid.dart';
+import '../../../../core/services/gamification_service.dart';
 
 class FirestoreSwapRepository implements SwapRepository {
   final firestore.FirebaseFirestore _firestore = firestore.FirebaseFirestore.instance;
@@ -101,6 +102,9 @@ class FirestoreSwapRepository implements SwapRepository {
 
       transaction.set(_firestore.collection('transactions').doc(senderTransaction.id), senderTransaction.toMap());
       transaction.set(_firestore.collection('transactions').doc(receiverTransaction.id), receiverTransaction.toMap());
+
+      // Award XP
+      await GamificationService().onSwapCompleted(senderId, receiverId);
     });
   }
 
@@ -118,6 +122,7 @@ class FirestoreSwapRepository implements SwapRepository {
       timeValue: data['timeValue'] ?? 1,
       status: SwapRequestStatus.values.byName(data['status'] ?? 'pending'),
       createdAt: (data['createdAt'] as firestore.Timestamp).toDate(),
+      scheduledAt: data['scheduledAt'] != null ? (data['scheduledAt'] as firestore.Timestamp).toDate() : null,
     );
   }
 
@@ -134,6 +139,7 @@ class FirestoreSwapRepository implements SwapRepository {
       'timeValue': request.timeValue,
       'status': request.status.name,
       'createdAt': firestore.Timestamp.fromDate(request.createdAt),
+      'scheduledAt': request.scheduledAt != null ? firestore.Timestamp.fromDate(request.scheduledAt!) : null,
     };
   }
 }
