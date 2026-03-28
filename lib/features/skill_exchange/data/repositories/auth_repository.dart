@@ -23,6 +23,7 @@ abstract class AuthRepository {
   });
   Future<void> signOut();
   Future<AppUser?> getCurrentUserData();
+  Future<AppUser?> getUserData(String userId);
   Future<void> updateUserProfile({
     required String name,
     required String bio,
@@ -173,23 +174,28 @@ class FirebaseAuthRepository implements AuthRepository {
   Future<AppUser?> getCurrentUserData() async {
     final user = _auth.currentUser;
     if (user == null) return null;
+    return getUserData(user.uid);
+  }
 
-    final doc = await _firestore.collection('users').doc(user.uid).get();
+  @override
+  Future<AppUser?> getUserData(String userId) async {
+    final doc = await _firestore.collection('users').doc(userId).get();
     if (!doc.exists) return null;
 
     final data = doc.data()!;
     String role = data['role'] ?? 'user';
     String status = data['status'] ?? 'pending';
     
-    if (user.email?.toLowerCase() == 'superadmin@gmail.com') {
+    final adminEmail = data['email'] as String?;
+    if (adminEmail?.toLowerCase() == 'superadmin@gmail.com') {
       role = 'superadmin';
       status = 'approved';
     }
 
     return AppUser(
-      id: user.uid,
+      id: userId,
       name: data['name'] ?? '',
-      email: user.email ?? data['email'] ?? '',
+      email: data['email'] ?? '',
       bio: data['bio'] ?? '',
       interests: List<String>.from(data['interests'] ?? []),
       skillIds: List<String>.from(data['skillIds'] ?? []),

@@ -16,6 +16,7 @@ class _AddSkillBottomSheetState extends ConsumerState<AddSkillBottomSheet> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _descController = TextEditingController();
+  final _customCategoryController = TextEditingController();
   String _category = 'Tech';
   int _timeValue = 1;
 
@@ -87,6 +88,18 @@ class _AddSkillBottomSheetState extends ConsumerState<AddSkillBottomSheet> {
                   .toList(),
               onChanged: (val) => setState(() => _category = val!),
             ),
+            if (_category == 'Other') ...[
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _customCategoryController,
+                decoration: const InputDecoration(
+                  labelText: 'Custom Category',
+                  hintText: 'e.g. Photography',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) => value == null || value.isEmpty ? 'Required' : null,
+              ),
+            ],
             const SizedBox(height: 16),
             Row(
               children: [
@@ -112,7 +125,7 @@ class _AddSkillBottomSheetState extends ConsumerState<AddSkillBottomSheet> {
                       id: const Uuid().v4(),
                       title: _titleController.text,
                       description: _descController.text,
-                      category: _category,
+                      category: _category == 'Other' ? _customCategoryController.text.trim() : _category,
                       providerId: user.id,
                       providerName: user.name,
                       providerAvatarUrl: user.avatarUrl,

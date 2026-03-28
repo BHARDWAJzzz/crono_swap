@@ -19,6 +19,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
   late TextEditingController _nameController;
   late TextEditingController _bioController;
   late TextEditingController _linkedinController;
+  late TextEditingController _customInterestController;
   late List<String> _selectedInterests;
   bool _isLoading = false;
   XFile? _imageFile;
@@ -36,7 +37,13 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
     _nameController = TextEditingController(text: widget.user.name);
     _bioController = TextEditingController(text: widget.user.bio);
     _linkedinController = TextEditingController(text: widget.user.linkedinUrl);
+    _customInterestController = TextEditingController();
     _selectedInterests = List.from(widget.user.interests);
+    for (final interest in _selectedInterests) {
+      if (!_availableInterests.contains(interest)) {
+        _availableInterests.add(interest);
+      }
+    }
   }
 
   @override
@@ -44,6 +51,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
     _nameController.dispose();
     _bioController.dispose();
     _linkedinController.dispose();
+    _customInterestController.dispose();
     super.dispose();
   }
 
@@ -205,6 +213,32 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                   checkmarkColor: theme.colorScheme.primary,
                 );
               }).toList(),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildTextField(_customInterestController, 'Add a custom interest...', Icons.add_circle_outline),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      icon: Icon(Icons.add, color: theme.colorScheme.primary),
+                      onPressed: () {
+                        final val = _customInterestController.text.trim();
+                        if (val.isNotEmpty) {
+                          setState(() {
+                            if (!_availableInterests.contains(val)) {
+                              _availableInterests.add(val);
+                            }
+                            if (!_selectedInterests.contains(val)) {
+                              _selectedInterests.add(val);
+                            }
+                            _customInterestController.clear();
+                          });
+                        }
+                      },
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 32),
                 _buildSectionTitle('LinkedIn Profile'),

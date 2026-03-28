@@ -16,3 +16,7 @@ final userDataProvider = FutureProvider<AppUser?>((ref) async {
   if (user == null) return null;
   return ref.watch(authRepositoryProvider).getCurrentUserData();
 });
+
+final userProvider = FutureProvider.family<AppUser?, String>((ref, userId) async {
+  return ref.watch(authRepositoryProvider).getUserData(userId);
+});

@@ -43,14 +43,18 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
             child: skillsAsync.when(
               data: (skills) {
                 final featuredSkills = skills.take(3).toList();
-                final remainingSkills = skills.skip(3).where((s) {
+                final remainingSkills = skills.where((s) {
                   final matchesSearch = s.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
                       s.description.toLowerCase().contains(_searchQuery.toLowerCase());
                   final matchesCategory = _selectedCategory == 'All' || s.category == _selectedCategory;
                   return matchesSearch && matchesCategory;
                 }).toList();
 
-                if (remainingSkills.isEmpty && featuredSkills.isEmpty) {
+                if (skills.isEmpty) {
+                  return const Center(child: Text('No skills found yet. Be the first to add one!'));
+                }
+                
+                if (remainingSkills.isEmpty && _searchQuery.isNotEmpty) {
                   return const Center(child: Text('No skills found matching your search.'));
                 }
 

@@ -24,12 +24,13 @@ class _AuthPageState extends ConsumerState<AuthPage> {
   final _nameController = TextEditingController();
   final _bioController = TextEditingController();
   final _linkedinController = TextEditingController();
+  final _customInterestController = TextEditingController();
   
   File? _certificateFile;
   File? _resumeFile;
   
   final List<String> _selectedInterests = [];
-  final List<String> _availableInterests = [
+  List<String> _availableInterests = [
     'Design', 'Coding', 'Cooking', 'Music', 'Fitness', 'Language', 'Marketing', 'Photography'
   ];
 
@@ -57,6 +58,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
     _nameController.dispose();
     _bioController.dispose();
     _linkedinController.dispose();
+    _customInterestController.dispose();
     super.dispose();
   }
 
@@ -753,6 +755,38 @@ class _AuthPageState extends ConsumerState<AuthPage> {
               );
             }).toList(),
           ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _buildTextField(
+                  controller: _customInterestController,
+                  label: 'CUSTOM INTEREST',
+                  hintText: 'e.g. Astrophysics',
+                  icon: Icons.add_circle_outline,
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                icon: Icon(Icons.add, color: theme.colorScheme.primary),
+                onPressed: () {
+                  final val = _customInterestController.text.trim();
+                  if (val.isNotEmpty) {
+                    setState(() {
+                      if (!_availableInterests.contains(val)) {
+                        _availableInterests.add(val);
+                      }
+                      if (!_selectedInterests.contains(val)) {
+                        _selectedInterests.add(val);
+                      }
+                      _customInterestController.clear();
+                    });
+                  }
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 32),
         ],
       ),
     );

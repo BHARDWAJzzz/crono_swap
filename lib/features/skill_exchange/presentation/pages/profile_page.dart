@@ -8,16 +8,23 @@ import '../../../../core/widgets/shimmer_loader.dart';
 
 class ProfilePage extends ConsumerWidget {
   final AppUser? user;
-  const ProfilePage({super.key, this.user});
+  final String? userId;
+  const ProfilePage({super.key, this.user, this.userId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currentUserDataAsync = ref.watch(userDataProvider);
     final theme = Theme.of(context);
 
-    // Use the passed user or the current user
-    final AppUser? displayUser = user ?? currentUserDataAsync.value;
-    final bool isOwnProfile = user == null || (user?.id == currentUserDataAsync.value?.id);
+    // Use the passed user, fetch by userId, or use the current user
+    final AsyncValue<AppUser?> displayUserAsync = user != null 
+        ? AsyncValue.data(user) 
+        : (userId != null ? ref.watch(userProvider(userId!)) : currentUserDataAsync);
+
+    final displayUser = displayUserAsync.value;
+    final bool isOwnProfile = (userId == null && user == null) || 
+                             (userId != null && userId == currentUserDataAsync.value?.id) ||
+                             (user != null && user?.id == currentUserDataAsync.value?.id);
 
     return Scaffold(
       appBar: AppBar(
@@ -40,7 +47,7 @@ class ProfilePage extends ConsumerWidget {
         ],
       ),
       body: displayUser == null
-          ? (currentUserDataAsync.isLoading 
+          ? (displayUserAsync.isLoading 
               ? _buildLoadingState() 
               : const Center(child: Text('User profile not found')))
           : _buildProfileContent(context, ref, displayUser, theme, isOwnProfile),

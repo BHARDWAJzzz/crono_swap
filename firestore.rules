@@ -71,7 +71,7 @@ service cloud.firestore {
     match /lectures/{lectureId} {
       allow read: if true;
       allow create: if request.auth != null;
-      allow update, delete: if request.auth != null && (resource.data.sellerId == request.auth.uid || isModerator());
+      allow update, delete: if request.auth != null && (resource.data.providerId == request.auth.uid || isModerator());
     }
 
     // Reviews

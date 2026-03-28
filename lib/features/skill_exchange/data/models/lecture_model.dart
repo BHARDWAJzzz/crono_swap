@@ -26,9 +26,9 @@ class LectureModel extends Lecture {
       providerName: data['providerName'] ?? '',
       previewUrl: data['previewUrl'],
       contentUrl: data['contentUrl'] ?? '',
-      priceInHours: data['priceInHours'] ?? 1,
-      durationMinutes: data['durationMinutes'] ?? 0,
-      type: LectureType.values.byName(data['type'] ?? 'video'),
+      priceInHours: (data['priceInHours'] ?? 1).toInt(),
+      durationMinutes: (data['durationMinutes'] ?? 0).toInt(),
+      type: _parseType(data['type']),
       createdAt: (data['createdAt'] as Timestamp).toDate(),
       categories: List<String>.from(data['categories'] ?? []),
     );
@@ -48,5 +48,14 @@ class LectureModel extends Lecture {
       'createdAt': Timestamp.fromDate(createdAt),
       'categories': categories,
     };
+  }
+
+  static LectureType _parseType(String? type) {
+    try {
+      if (type == null) return LectureType.video;
+      return LectureType.values.byName(type);
+    } catch (_) {
+      return LectureType.video; // Fallback
+    }
   }
 }

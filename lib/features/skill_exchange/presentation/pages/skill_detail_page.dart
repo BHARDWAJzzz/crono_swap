@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/skill.dart';
 import '../widgets/exchange_bottom_sheet.dart';
 import '../providers/auth_providers.dart';
+import 'profile_page.dart';
 
 class SkillDetailPage extends ConsumerWidget {
   final Skill skill;
@@ -111,18 +112,24 @@ class SkillDetailPage extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 12),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: CircleAvatar(
-                backgroundColor: theme.colorScheme.secondary,
-                backgroundImage: skill.providerAvatarUrl != null ? NetworkImage(skill.providerAvatarUrl!) : null,
-                child: skill.providerAvatarUrl == null 
-                  ? const Icon(Icons.person, color: Colors.white)
-                  : null,
+            InkWell(
+              onTap: () => Navigator.push(
+                context, 
+                MaterialPageRoute(builder: (_) => ProfilePage(userId: skill.providerId)),
               ),
-              title: Text(skill.providerName),
-              subtitle: const Text('Top Rated Provider'),
-              trailing: const Icon(Icons.verified, color: Colors.blue),
+              child: ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: CircleAvatar(
+                  backgroundColor: theme.colorScheme.secondary,
+                  backgroundImage: skill.providerAvatarUrl != null ? NetworkImage(skill.providerAvatarUrl!) : null,
+                  child: skill.providerAvatarUrl == null 
+                    ? const Icon(Icons.person, color: Colors.white)
+                    : null,
+                ),
+                title: Text(skill.providerName),
+                subtitle: const Text('Top Rated Provider'),
+                trailing: const Icon(Icons.verified, color: Colors.blue),
+              ),
             ),
           ],
         ),
