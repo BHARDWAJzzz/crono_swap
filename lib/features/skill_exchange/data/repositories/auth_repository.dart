@@ -44,6 +44,7 @@ abstract class AuthRepository {
   Future<String> uploadProfileImage(File image);
   Future<void> saveFcmToken(String token);
   Future<String> uploadVerificationFile(File file, String type);
+  Future<void> updateUserFields(String userId, Map<String, dynamic> fields);
 }
 
 class FirebaseAuthRepository implements AuthRepository {
@@ -103,6 +104,9 @@ class FirebaseAuthRepository implements AuthRepository {
         'level': 1,
         'streak': 0,
         'badgeIds': [],
+        'lastActiveDate': null,
+        'hasStreakShield': false,
+        'endorsements': {},
         'averageRating': 0,
         'totalReviews': 0,
       });
@@ -156,6 +160,9 @@ class FirebaseAuthRepository implements AuthRepository {
         'level': 1,
         'streak': 0,
         'badgeIds': [],
+        'lastActiveDate': null,
+        'hasStreakShield': false,
+        'endorsements': {},
         'averageRating': 0,
         'totalReviews': 0,
       });
@@ -201,7 +208,7 @@ class FirebaseAuthRepository implements AuthRepository {
       skillIds: List<String>.from(data['skillIds'] ?? []),
       skillsWanted: List<String>.from(data['skillsWanted'] ?? []),
       boughtLectureIds: List<String>.from(data['boughtLectureIds'] ?? []),
-      timeBalance: (data['timeBalance'] ?? 0).toInt(),
+      timeBalance: (data['timeBalance'] ?? 0.0).toDouble(),
       role: role,
       dob: data['dob'] != null ? (data['dob'] as Timestamp).toDate() : null,
       status: status,
@@ -216,12 +223,20 @@ class FirebaseAuthRepository implements AuthRepository {
       xp: (data['xp'] ?? 0).toInt(),
       streak: (data['streak'] ?? 0).toInt(),
       badgeIds: List<String>.from(data['badgeIds'] ?? []),
+      lastActiveDate: data['lastActiveDate'] != null ? (data['lastActiveDate'] as Timestamp).toDate() : null,
+      hasStreakShield: data['hasStreakShield'] ?? false,
+      endorsements: Map<String, int>.from((data['endorsements'] ?? {}).map((k, v) => MapEntry(k.toString(), (v as num).toInt()))),
       hoursTeaching: (data['hoursTeaching'] ?? 0).toInt(),
       hoursLearning: (data['hoursLearning'] ?? 0).toInt(),
       swapsCompleted: (data['swapsCompleted'] ?? 0).toInt(),
       lecturesSold: (data['lecturesSold'] ?? 0).toInt(),
       availability: List<String>.from(data['availability'] ?? []),
     );
+  }
+
+  @override
+  Future<void> updateUserFields(String userId, Map<String, dynamic> fields) async {
+    await _firestore.collection('users').doc(userId).update(fields);
   }
 
   @override
@@ -286,6 +301,9 @@ class FirebaseAuthRepository implements AuthRepository {
       'level': 1,
       'streak': 0,
       'badgeIds': [],
+      'lastActiveDate': null,
+      'hasStreakShield': false,
+      'endorsements': {},
       'averageRating': 0,
       'totalReviews': 0,
     });

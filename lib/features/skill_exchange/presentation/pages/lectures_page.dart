@@ -6,6 +6,7 @@ import '../../domain/entities/lecture.dart';
 import 'lecture_detail_page.dart';
 import 'lecture_upload_page.dart';
 import '../../../../core/widgets/shimmer_loader.dart';
+import '../../../../core/widgets/responsive_layout.dart';
 
 class LecturesPage extends ConsumerStatefulWidget {
   const LecturesPage({super.key});
@@ -94,11 +95,11 @@ class _LecturesPageState extends ConsumerState<LecturesPage> {
 
               return GridView.builder(
                 padding: const EdgeInsets.all(24),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: ResponsiveLayout.isDesktop(context) ? 4 : (ResponsiveLayout.isTablet(context) ? 3 : 2),
                   crossAxisSpacing: 16,
                   mainAxisSpacing: 16,
-                  childAspectRatio: 0.75,
+                  childAspectRatio: ResponsiveLayout.isDesktop(context) ? 1.0 : 0.75,
                 ),
                 itemCount: filtered.length,
                 itemBuilder: (context, index) => _LectureCard(lecture: filtered[index]),
@@ -106,8 +107,11 @@ class _LecturesPageState extends ConsumerState<LecturesPage> {
             },
             loading: () => GridView.builder(
               padding: const EdgeInsets.all(24),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2, crossAxisSpacing: 16, mainAxisSpacing: 16, childAspectRatio: 0.75,
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: ResponsiveLayout.isDesktop(context) ? 4 : (ResponsiveLayout.isTablet(context) ? 3 : 2),
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+                childAspectRatio: ResponsiveLayout.isDesktop(context) ? 1.0 : 0.75,
               ),
               itemCount: 4,
               itemBuilder: (e, i) => const ShimmerLoader(width: 150, height: 200, borderRadius: 20),

@@ -5,7 +5,7 @@ class AppUser {
   final List<String> interests;
   final List<String> skillIds;
   final List<String> skillsWanted;
-  final int timeBalance;
+  final double timeBalance;
   final String role;
   final DateTime? dob;
   final String? avatarUrl;
@@ -26,6 +26,11 @@ class AppUser {
   final int xp;
   final int streak;
   final List<String> badgeIds;
+  final DateTime? lastActiveDate;
+  final bool hasStreakShield;
+
+  // Endorsements: sub-skill name -> count
+  final Map<String, int> endorsements;
 
   // Progress Tracking
   final int hoursTeaching;
@@ -60,6 +65,9 @@ class AppUser {
     this.xp = 0,
     this.streak = 0,
     this.badgeIds = const [],
+    this.lastActiveDate,
+    this.hasStreakShield = false,
+    this.endorsements = const {},
     this.hoursTeaching = 0,
     this.hoursLearning = 0,
     this.swapsCompleted = 0,
@@ -93,7 +101,7 @@ class AppUser {
       interests: List<String>.from(data['interests'] ?? []),
       skillIds: List<String>.from(data['skillIds'] ?? []),
       skillsWanted: List<String>.from(data['skillsWanted'] ?? []),
-      timeBalance: (data['timeBalance'] ?? 0).toInt(),
+      timeBalance: (data['timeBalance'] ?? 0.0).toDouble(),
       role: data['role'] ?? 'user',
       dob: data['dob'] != null ? (data['dob'] as dynamic).toDate() : null,
       status: data['status'] ?? 'pending',
@@ -108,11 +116,49 @@ class AppUser {
       xp: (data['xp'] ?? 0).toInt(),
       streak: (data['streak'] ?? 0).toInt(),
       badgeIds: List<String>.from(data['badgeIds'] ?? []),
+      lastActiveDate: data['lastActiveDate'] != null ? (data['lastActiveDate'] as dynamic).toDate() : null,
+      hasStreakShield: data['hasStreakShield'] ?? false,
+      endorsements: Map<String, int>.from((data['endorsements'] ?? {}).map((k, v) => MapEntry(k.toString(), (v as num).toInt()))),
       hoursTeaching: (data['hoursTeaching'] ?? 0).toInt(),
       hoursLearning: (data['hoursLearning'] ?? 0).toInt(),
       swapsCompleted: (data['swapsCompleted'] ?? 0).toInt(),
       lecturesSold: (data['lecturesSold'] ?? 0).toInt(),
       availability: List<String>.from(data['availability'] ?? []),
     );
+  }
+
+  Map<String, dynamic> toFirestore() {
+    return {
+      'name': name,
+      'email': email,
+      'avatarUrl': avatarUrl,
+      'bio': bio,
+      'interests': interests,
+      'skillIds': skillIds,
+      'skillsWanted': skillsWanted,
+      'timeBalance': timeBalance,
+      'role': role,
+      'dob': dob,
+      'status': status,
+      'boughtLectureIds': boughtLectureIds,
+      'certificateUrl': certificateUrl,
+      'resumeUrl': resumeUrl,
+      'linkedinUrl': linkedinUrl,
+      'averageRating': averageRating,
+      'totalReviews': totalReviews,
+      'isVerifiedProfessional': isVerifiedProfessional,
+      'level': level,
+      'xp': xp,
+      'streak': streak,
+      'badgeIds': badgeIds,
+      'lastActiveDate': lastActiveDate,
+      'hasStreakShield': hasStreakShield,
+      'endorsements': endorsements,
+      'hoursTeaching': hoursTeaching,
+      'hoursLearning': hoursLearning,
+      'swapsCompleted': swapsCompleted,
+      'lecturesSold': lecturesSold,
+      'availability': availability,
+    };
   }
 }

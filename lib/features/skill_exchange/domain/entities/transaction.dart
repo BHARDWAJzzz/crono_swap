@@ -1,4 +1,4 @@
-enum TransactionType { swap, lecturePurchase, administrative }
+enum TransactionType { swap, lecturePurchase, administrative, quest, bonus }
 
 class Transaction {
   final String id;
@@ -6,9 +6,14 @@ class Transaction {
   final String otherUserId;
   final String otherUserName;
   final String title; // "React Lesson", "Design Swap"
-  final int amount; // positive for income, negative for expense
+  final double amount; // positive for income, negative for expense
   final TransactionType type;
   final DateTime createdAt;
+  
+  // Economy 2.0 fields
+  final double? taxAmount;
+  final double? bonusAmount;
+  final String? bonusReason;
 
   Transaction({
     required this.id,
@@ -19,5 +24,8 @@ class Transaction {
     required this.amount,
     required this.type,
     required this.createdAt,
+    this.taxAmount,
+    this.bonusAmount,
+    this.bonusReason,
   });
 }

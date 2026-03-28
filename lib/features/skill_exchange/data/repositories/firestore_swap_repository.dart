@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart' as firestore;
+import '../../../../core/services/credit_economy_service.dart';
 import '../../domain/entities/swap_request.dart';
 import '../../domain/repositories/swap_repository.dart';
 import '../../domain/entities/transaction.dart';
@@ -35,8 +36,8 @@ class FirestoreSwapRepository implements SwapRepository {
       final userDoc = await transaction.get(_firestore.collection('users').doc(request.senderId));
       if (!userDoc.exists) throw 'Sender user profile not found';
 
-      final balance = userDoc.data()?['timeBalance'] ?? 0;
-      if (balance < 1) {
+      final double balance = (userDoc.data()?['timeBalance'] ?? 0.0).toDouble();
+      if (balance < 1.0) {
         throw 'Insufficient balance. You need at least 1 hour to request a skill swap.';
       }
 
@@ -53,6 +54,8 @@ class FirestoreSwapRepository implements SwapRepository {
 
   @override
   Future<void> completeRequest(String requestId) async {
+    final economyService = CreditEconomyService();
+
     return _firestore.runTransaction((transaction) async {
       final swapDoc = await transaction.get(_firestore.collection('swaps').doc(requestId));
       if (!swapDoc.exists) throw 'Swap request not found';
@@ -64,20 +67,64 @@ class FirestoreSwapRepository implements SwapRepository {
       final senderId = data['senderId'];
       final receiverId = data['receiverId'];
 
-      final int timeValue = data['timeValue'] ?? 1;
+      final senderRef = _firestore.collection('users').doc(senderId);
+      final receiverRef = _firestore.collection('users').doc(receiverId);
 
-      // Mark swap as completed
+      // 1. Fetch all required documents
+      final senderDoc = await transaction.get(senderRef);
+      final receiverDoc = await transaction.get(receiverRef);
+
+      if (!senderDoc.exists) throw 'Sender profile not found';
+      if (!receiverDoc.exists) throw 'Receiver profile not found';
+
+      final senderData = senderDoc.data()!;
+      final receiverData = receiverDoc.data()!;
+
+      final double duration = (data['timeValue'] ?? 1.0).toDouble();
+
+      // 2. Calculate Economy 2.0 Allotment
+      final economyResult = economyService.calculateAllotment(
+        durationInHours: duration,
+        mentorRating: (receiverData['averageRating'] ?? 0.0).toDouble(),
+        isProfessional: receiverData['isVerifiedProfessional'] ?? false,
+      );
+
+      final Map<String, dynamic> senderUpdates = {
+        'timeBalance': firestore.FieldValue.increment(-economyResult.baseAmount), // Learner always pays the base
+        'hoursLearning': firestore.FieldValue.increment(economyResult.baseAmount),
+        'swapsCompleted': firestore.FieldValue.increment(1),
+      };
+      
+      final Map<String, dynamic> receiverUpdates = {
+        'timeBalance': firestore.FieldValue.increment(economyResult.finalAmountToProvider),
+        'hoursTeaching': firestore.FieldValue.increment(economyResult.baseAmount),
+        'swapsCompleted': firestore.FieldValue.increment(1),
+      };
+
+      // Apply Gamification
+      final gamification = GamificationService();
+      senderUpdates.addAll(gamification.computeUpdateMap(
+        userData: {...senderData, ...senderUpdates}, 
+        addedXp: 50,
+      ));
+      receiverUpdates.addAll(gamification.computeUpdateMap(
+        userData: {...receiverData, ...receiverUpdates}, 
+        addedXp: 50,
+      ));
+
+      // Update streaks
+      senderUpdates.addAll(gamification.computeStreakUpdate(userData: {...senderData, ...senderUpdates}));
+      receiverUpdates.addAll(gamification.computeStreakUpdate(userData: {...receiverData, ...receiverUpdates}));
+
+      // 3. Apply all updates
       transaction.update(swapDoc.reference, {'status': SwapRequestStatus.completed.name});
+      transaction.update(senderRef, senderUpdates);
+      transaction.update(receiverRef, receiverUpdates);
 
-      // Atomically swap time balance
-      transaction.update(_firestore.collection('users').doc(senderId), {
-        'timeBalance': firestore.FieldValue.increment(-timeValue),
-      });
-      transaction.update(_firestore.collection('users').doc(receiverId), {
-        'timeBalance': firestore.FieldValue.increment(timeValue),
-      });
+      // Update global economy treasury
+      economyService.updateGlobalEconomy(transaction, economyResult.taxAmount, economyResult.bonusAmount);
 
-      // Log transactions for history
+      // Log transactions
       final now = DateTime.now();
       final senderTransaction = TransactionModel(
         id: const Uuid().v4(),
@@ -85,26 +132,27 @@ class FirestoreSwapRepository implements SwapRepository {
         otherUserId: receiverId,
         otherUserName: data['receiverName'] ?? 'Partner',
         title: data['skillTitle'] ?? 'Skill Swap',
-        amount: -timeValue,
+        amount: -economyResult.baseAmount,
         type: TransactionType.swap,
         createdAt: now,
       );
+
       final receiverTransaction = TransactionModel(
         id: const Uuid().v4(),
         userId: receiverId,
         otherUserId: senderId,
         otherUserName: data['senderName'] ?? 'Partner',
         title: data['skillTitle'] ?? 'Skill Swap',
-        amount: timeValue,
+        amount: economyResult.finalAmountToProvider,
         type: TransactionType.swap,
         createdAt: now,
+        taxAmount: economyResult.taxAmount,
+        bonusAmount: economyResult.bonusAmount,
+        bonusReason: economyResult.bonusReason,
       );
 
       transaction.set(_firestore.collection('transactions').doc(senderTransaction.id), senderTransaction.toMap());
       transaction.set(_firestore.collection('transactions').doc(receiverTransaction.id), receiverTransaction.toMap());
-
-      // Award XP
-      await GamificationService().onSwapCompleted(senderId, receiverId);
     });
   }
 
@@ -119,7 +167,7 @@ class FirestoreSwapRepository implements SwapRepository {
       receiverAvatarUrl: data['receiverAvatarUrl'],
       skillId: data['skillId'] ?? '',
       skillTitle: data['skillTitle'] ?? '',
-      timeValue: data['timeValue'] ?? 1,
+      timeValue: (data['timeValue'] ?? 1.0).toDouble(),
       status: SwapRequestStatus.values.byName(data['status'] ?? 'pending'),
       createdAt: (data['createdAt'] as firestore.Timestamp).toDate(),
       scheduledAt: data['scheduledAt'] != null ? (data['scheduledAt'] as firestore.Timestamp).toDate() : null,

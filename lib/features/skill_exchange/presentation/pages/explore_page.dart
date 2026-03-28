@@ -8,6 +8,7 @@ import 'skill_detail_page.dart';
 import '../providers/auth_providers.dart';
 
 import '../../../../core/widgets/shimmer_loader.dart';
+import '../../../../core/widgets/responsive_layout.dart';
 
 class ExplorePage extends ConsumerStatefulWidget {
   const ExplorePage({super.key});
@@ -35,19 +36,20 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
         backgroundColor: Colors.transparent,
         foregroundColor: theme.colorScheme.onSurface,
       ),
-      body: Column(
-        children: [
-          _buildFeaturedCarousel(skillsAsync),
-          _buildSearchAndFilter(theme),
-          Expanded(
-            child: skillsAsync.when(
-              data: (skills) {
-                final featuredSkills = skills.take(3).toList();
-                final remainingSkills = skills.where((s) {
-                  final matchesSearch = s.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-                      s.description.toLowerCase().contains(_searchQuery.toLowerCase());
-                  final matchesCategory = _selectedCategory == 'All' || s.category == _selectedCategory;
-                  return matchesSearch && matchesCategory;
+      body: MaxWidthContainer(
+        child: Column(
+          children: [
+            _buildFeaturedCarousel(skillsAsync),
+            _buildSearchAndFilter(theme),
+            Expanded(
+              child: skillsAsync.when(
+                data: (skills) {
+                  final featuredSkills = skills.take(3).toList();
+                  final remainingSkills = skills.where((s) {
+                    final matchesSearch = s.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+                        s.description.toLowerCase().contains(_searchQuery.toLowerCase());
+                    final matchesCategory = _selectedCategory == 'All' || s.category == _selectedCategory;
+                    return matchesSearch && matchesCategory;
                 }).toList();
 
                 if (skills.isEmpty) {
@@ -142,6 +144,7 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
             ),
           ),
         ],
+      ),
       ),
     );
   }

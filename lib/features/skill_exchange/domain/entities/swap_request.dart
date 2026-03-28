@@ -16,7 +16,7 @@ class SwapRequest {
   final String? receiverAvatarUrl;
   final String skillId;
   final String skillTitle;
-  final int timeValue;
+  final double timeValue;
   final SwapRequestStatus status;
   final DateTime createdAt;
   final DateTime? scheduledAt;

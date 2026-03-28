@@ -6,6 +6,7 @@ import '../providers/auth_providers.dart';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import '../../../../core/theme.dart';
+import '../../../../core/widgets/responsive_layout.dart';
 
 class AuthPage extends ConsumerStatefulWidget {
   const AuthPage({super.key});
@@ -228,8 +229,10 @@ class _AuthPageState extends ConsumerState<AuthPage> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: Stack(
-          children: [
+        child: MaxWidthContainer(
+          maxWidth: 600,
+          child: Stack(
+            children: [
             Column(
               children: [
                 const SizedBox(height: 60), // Space for back button
@@ -291,6 +294,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
               ),
             ),
           ],
+        ),
         ),
       ),
     );

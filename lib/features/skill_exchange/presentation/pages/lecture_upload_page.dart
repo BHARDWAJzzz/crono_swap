@@ -90,7 +90,7 @@ class _LectureUploadPageState extends ConsumerState<LectureUploadPage> {
         description: _descriptionController.text.trim(),
         providerId: user.id,
         providerName: user.name,
-        priceInHours: int.parse(_priceController.text.trim()),
+        priceInHours: double.parse(_priceController.text.trim()),
         durationMinutes: int.parse(_durationController.text.trim()),
         type: _selectedType,
         contentUrl: contentUrl,

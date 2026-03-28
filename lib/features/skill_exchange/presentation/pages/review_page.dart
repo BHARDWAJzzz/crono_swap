@@ -25,6 +25,7 @@ class ReviewPage extends ConsumerStatefulWidget {
 class _ReviewPageState extends ConsumerState<ReviewPage> {
   double _rating = 0;
   final _commentController = TextEditingController();
+  final List<String> _selectedEndorsements = [];
   bool _isSubmitting = false;
 
   @override
@@ -54,6 +55,7 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
             revieweeId: widget.revieweeId,
             rating: _rating,
             comment: _commentController.text.trim(),
+            endorsedSkills: _selectedEndorsements,
           );
 
       if (mounted) {
@@ -160,6 +162,8 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
               ),
             ],
             const SizedBox(height: 40),
+            _buildEndorsementSection(theme),
+            const SizedBox(height: 40),
             Text(
               'LEAVE A COMMENT (OPTIONAL)',
               style: GoogleFonts.outfit(
@@ -217,5 +221,60 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
     if (_rating >= 3) return 'Good 👍';
     if (_rating >= 2) return 'Okay 🤔';
     return 'Poor 😕';
+  }
+
+  Widget _buildEndorsementSection(ThemeData theme) {
+    return Column(
+      children: [
+        Text(
+          'ENDORSE SKILLS',
+          style: GoogleFonts.outfit(
+            fontSize: 10,
+            fontWeight: FontWeight.w900,
+            color: Colors.grey.shade400,
+            letterSpacing: 2,
+          ),
+        ),
+        const SizedBox(height: 16),
+        FutureBuilder(
+          future: ref.read(authRepositoryProvider).getUserData(widget.revieweeId),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) return const CircularProgressIndicator();
+            final reviewee = snapshot.data!;
+            final skills = reviewee.interests; // Using interests as sub-skills for now
+
+            if (skills.isEmpty) return const Text('No sub-skills to endorse');
+
+            return Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              alignment: WrapAlignment.center,
+              children: skills.map((skill) {
+                final isSelected = _selectedEndorsements.contains(skill);
+                return FilterChip(
+                  label: Text(skill),
+                  selected: isSelected,
+                  onSelected: (selected) {
+                    setState(() {
+                      if (selected) {
+                        _selectedEndorsements.add(skill);
+                      } else {
+                        _selectedEndorsements.remove(skill);
+                      }
+                    });
+                  },
+                  selectedColor: theme.colorScheme.primary.withOpacity(0.2),
+                  checkmarkColor: theme.colorScheme.primary,
+                  labelStyle: TextStyle(
+                    color: isSelected ? theme.colorScheme.primary : Colors.grey.shade600,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  ),
+                );
+              }).toList(),
+            );
+          },
+        ),
+      ],
+    );
   }
 }

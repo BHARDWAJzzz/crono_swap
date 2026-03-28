@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/services/badge_service.dart';
+import '../../../../core/widgets/responsive_layout.dart';
 import '../providers/auth_providers.dart';
 
 class ProgressPage extends ConsumerWidget {
@@ -90,7 +91,7 @@ class ProgressPage extends ConsumerWidget {
                 Text('STATS', style: GoogleFonts.outfit(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey.shade400, letterSpacing: 2)),
                 const SizedBox(height: 16),
                 GridView.count(
-                  crossAxisCount: 2,
+                  crossAxisCount: ResponsiveLayout.isDesktop(context) ? 4 : (ResponsiveLayout.isTablet(context) ? 3 : 2),
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   mainAxisSpacing: 16,
@@ -116,7 +117,7 @@ class ProgressPage extends ConsumerWidget {
                   children: BadgeService.allBadges.values.map((badge) {
                     final earned = user.badgeIds.contains(badge.id);
                     return Container(
-                      width: MediaQuery.of(context).size.width / 2 - 36,
+                      width: 150,
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         color: earned ? Colors.amber.shade50 : Colors.grey.shade50,

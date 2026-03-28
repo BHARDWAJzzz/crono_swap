@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart' as firebase;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/review.dart';
+import '../../../../core/services/gamification_service.dart';
 
 final reviewRepositoryProvider = Provider((ref) => FirestoreReviewRepository());
 
@@ -46,43 +47,48 @@ class FirestoreReviewRepository {
     required String revieweeId,
     required double rating,
     required String comment,
+    List<String> endorsedSkills = const [],
   }) async {
-    final batch = _firestore.batch();
+    return _firestore.runTransaction((transaction) async {
+      // 1. Create the review
+      final reviewRef = _firestore.collection('reviews').doc();
+      transaction.set(reviewRef, {
+        'swapId': swapId,
+        'reviewerId': reviewerId,
+        'reviewerName': reviewerName,
+        'reviewerAvatarUrl': reviewerAvatarUrl,
+        'revieweeId': revieweeId,
+        'rating': rating,
+        'comment': comment,
+        'endorsedSkills': endorsedSkills,
+        'createdAt': firebase.Timestamp.now(),
+      });
 
-    // 1. Create the review
-    final reviewRef = _firestore.collection('reviews').doc();
-    batch.set(reviewRef, {
-      'swapId': swapId,
-      'reviewerId': reviewerId,
-      'reviewerName': reviewerName,
-      'reviewerAvatarUrl': reviewerAvatarUrl,
-      'revieweeId': revieweeId,
-      'rating': rating,
-      'comment': comment,
-      'createdAt': firebase.Timestamp.now(),
+      // 2. Update reviewee's aggregate rating and endorsements atomically
+      final userRef = _firestore.collection('users').doc(revieweeId);
+      final userDoc = await transaction.get(userRef);
+      final userData = userDoc.data() ?? {};
+      
+      final currentTotal = (userData['totalReviews'] ?? 0) as int;
+      final currentAvg = (userData['averageRating'] ?? 0).toDouble();
+      final endorsements = Map<String, int>.from(userData['endorsements'] ?? {});
+
+      // Increment endorsement counts
+      for (final skill in endorsedSkills) {
+        endorsements[skill] = (endorsements[skill] ?? 0) + 1;
+      }
+
+      final newTotal = currentTotal + 1;
+      final newAvg = ((currentAvg * currentTotal) + rating) / newTotal;
+
+      transaction.update(userRef, {
+        'averageRating': double.parse(newAvg.toStringAsFixed(2)),
+        'totalReviews': newTotal,
+        'endorsements': endorsements,
+      });
+
+      // 3. Award XP to reviewer for giving a review
+      await GamificationService().awardXP(reviewerId, 10, transaction: transaction);
     });
-
-    // 2. Update reviewee's aggregate rating atomically
-    final userRef = _firestore.collection('users').doc(revieweeId);
-    final userDoc = await userRef.get();
-    final userData = userDoc.data() ?? {};
-    final currentTotal = (userData['totalReviews'] ?? 0) as int;
-    final currentAvg = (userData['averageRating'] ?? 0).toDouble();
-
-    final newTotal = currentTotal + 1;
-    final newAvg = ((currentAvg * currentTotal) + rating) / newTotal;
-
-    batch.update(userRef, {
-      'averageRating': double.parse(newAvg.toStringAsFixed(2)),
-      'totalReviews': newTotal,
-    });
-
-    // 3. Award XP to reviewer for giving a review
-    final reviewerRef = _firestore.collection('users').doc(reviewerId);
-    batch.update(reviewerRef, {
-      'xp': firebase.FieldValue.increment(10),
-    });
-
-    await batch.commit();
   }
 }

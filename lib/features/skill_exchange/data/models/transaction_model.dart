@@ -11,6 +11,9 @@ class TransactionModel extends Transaction {
     required super.amount,
     required super.type,
     required super.createdAt,
+    super.taxAmount,
+    super.bonusAmount,
+    super.bonusReason,
   });
 
   factory TransactionModel.fromMap(String id, Map<String, dynamic> data) {
@@ -20,9 +23,12 @@ class TransactionModel extends Transaction {
       otherUserId: data['otherUserId'] ?? '',
       otherUserName: data['otherUserName'] ?? '',
       title: data['title'] ?? '',
-      amount: data['amount'] ?? 0,
+      amount: (data['amount'] ?? 0.0).toDouble(),
       type: TransactionType.values.byName(data['type'] ?? 'swap'),
       createdAt: (data['createdAt'] as firestore.Timestamp).toDate(),
+      taxAmount: (data['taxAmount'] ?? 0.0).toDouble(),
+      bonusAmount: (data['bonusAmount'] ?? 0.0).toDouble(),
+      bonusReason: data['bonusReason'],
     );
   }
 
@@ -35,6 +41,9 @@ class TransactionModel extends Transaction {
       'amount': amount,
       'type': type.name,
       'createdAt': firestore.Timestamp.fromDate(createdAt),
+      if (taxAmount != null) 'taxAmount': taxAmount,
+      if (bonusAmount != null) 'bonusAmount': bonusAmount,
+      if (bonusReason != null) 'bonusReason': bonusReason,
     };
   }
 }

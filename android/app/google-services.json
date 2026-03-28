@@ -29,6 +29,13 @@
             {
               "client_id": "766683937301-7uheibn5vfteno3s2rj50aca1vkgr1kf.apps.googleusercontent.com",
               "client_type": 3
+            },
+            {
+              "client_id": "766683937301-vr66g588a5ccnr50gvn9607gde92kfrv.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.cronoswap"
+              }
             }
           ]
         }

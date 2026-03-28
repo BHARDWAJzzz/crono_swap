@@ -8,7 +8,7 @@ class Lecture {
   final String providerName;
   final String? previewUrl;
   final String contentUrl; // The actual file (video/PDF)
-  final int priceInHours;
+  final double priceInHours;
   final int durationMinutes;
   final LectureType type;
   final DateTime createdAt;

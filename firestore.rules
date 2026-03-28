@@ -99,5 +99,24 @@ service cloud.firestore {
       allow read, update, delete: if isModerator();
       allow create: if request.auth != null;
     }
+    
+    // Notifications
+    match /notifications/{notificationId} {
+      allow read, update: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null; 
+      allow delete: if request.auth != null && (request.auth.uid == resource.data.userId || isModerator());
+    }
+
+    // Quests (Bounty System)
+    match /quests/{questId} {
+      allow read: if true;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.createdBy;
+      allow update: if request.auth != null && (
+        request.auth.uid == resource.data.createdBy || 
+        request.auth.uid == resource.data.assignedTo ||
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['applicantIds'])
+      );
+      allow delete: if isModerator();
+    }
   }
 }

@@ -18,7 +18,7 @@ class _AddSkillBottomSheetState extends ConsumerState<AddSkillBottomSheet> {
   final _descController = TextEditingController();
   final _customCategoryController = TextEditingController();
   String _category = 'Tech';
-  int _timeValue = 1;
+  double _timeValue = 1.0;
 
   @override
   Widget build(BuildContext context) {
@@ -106,12 +106,12 @@ class _AddSkillBottomSheetState extends ConsumerState<AddSkillBottomSheet> {
                 const Text('Time Value (Crono Units):'),
                 const Spacer(),
                 IconButton(
-                  onPressed: () => setState(() => _timeValue = (_timeValue > 1) ? _timeValue - 1 : 1),
+                  onPressed: () => setState(() => _timeValue = (_timeValue > 1.0) ? _timeValue - 1.0 : 1.0),
                   icon: const Icon(Icons.remove_circle_outline),
                 ),
-                Text('$_timeValue', style: theme.textTheme.titleMedium),
+                Text('${_timeValue.toInt()}', style: theme.textTheme.titleMedium),
                 IconButton(
-                  onPressed: () => setState(() => _timeValue++),
+                  onPressed: () => setState(() => _timeValue += 1.0),
                   icon: const Icon(Icons.add_circle_outline),
                 ),
               ],

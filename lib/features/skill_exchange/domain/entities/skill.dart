@@ -6,7 +6,7 @@ class Skill {
   final String providerId;
   final String providerName;
   final String? providerAvatarUrl;
-  final int timeValue; // In "Crono" units or hours
+  final double timeValue; // In "Crono" units or hours
 
   Skill({
     required this.id,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'firebase_options.dart';
 import 'core/theme.dart';
 import 'features/skill_exchange/presentation/pages/splash_screen.dart';
@@ -16,27 +17,62 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 }
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  try {
+    WidgetsFlutterBinding.ensureInitialized();
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (initError, stack) {
+    runApp(
+      Directionality(
+        textDirection: TextDirection.ltr,
+        child: Material(
+          child: SingleChildScrollView(
+            child: Text('Firebase Init Error:\n$initError\n$stack', style: const TextStyle(color: Colors.red)),
+          ),
+        ),
+      ),
+    );
+    return;
+  }
   
-  // Initialize FCM
-  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-  
-  // Request permissions (optional here, but good practice)
-  final messaging = FirebaseMessaging.instance;
-  await messaging.requestPermission(
-    alert: true,
-    badge: true,
-    sound: true,
-  );
-  runApp(
-    const ProviderScope(
-      child: CronoSwapApp(),
-    ),
-  );
+  try {
+    // Only register background handler on non-web platforms
+    if (!kIsWeb) {
+      FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+    }
+    
+    // Request permissions (optional here, but good practice)
+    final messaging = FirebaseMessaging.instance;
+    await messaging.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+  } catch (e) {
+    print('Firebase Messaging init failed (expected on some web environments): $e');
+  }
+
+  try {
+    runApp(
+      const ProviderScope(
+        child: CronoSwapApp(),
+      ),
+    );
+  } catch (e, stack) {
+    runApp(
+      Directionality(
+        textDirection: TextDirection.ltr,
+        child: Material(
+          child: SingleChildScrollView(
+            child: Text('Global Error:\n$e\n$stack', style: const TextStyle(color: Colors.red)),
+          ),
+        ),
+      ),
+    );
+  }
 }
+
 
 class CronoSwapApp extends ConsumerWidget {
   const CronoSwapApp({super.key});

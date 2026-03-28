@@ -4,6 +4,9 @@ import 'package:google_fonts/google_fonts.dart';
 import '../providers/auth_providers.dart';
 import '../../domain/entities/user.dart';
 import 'edit_profile_page.dart';
+import 'public_profile_page.dart';
+import 'package:share_plus/share_plus.dart';
+import 'lectures_page.dart';
 import '../../../../core/widgets/shimmer_loader.dart';
 
 class ProfilePage extends ConsumerWidget {
@@ -177,6 +180,35 @@ class ProfilePage extends ConsumerWidget {
           ),
           const SizedBox(height: 24),
 
+          // Public Profile Link
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PublicProfilePage(userId: user.id))),
+              icon: const Icon(Icons.public_rounded),
+              label: Text('View Public Portfolio', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                side: BorderSide(color: theme.colorScheme.primary.withOpacity(0.3)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: TextButton.icon(
+              onPressed: () => Share.share('Check out my Crono Swap profile: https://cronoswap.app/u/${user.id}'),
+              icon: const Icon(Icons.ios_share_rounded),
+              label: Text('Share Profile QR', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                foregroundColor: theme.colorScheme.primary,
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+
           Row(
             children: [
               Expanded(
@@ -201,6 +233,57 @@ class ProfilePage extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 32),
+
+          // Lecture Marketplace Tile
+          if (isOwnProfile)
+            GestureDetector(
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LecturesPage())),
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 32),
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: theme.colorScheme.primary.withOpacity(0.1)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.school_rounded, color: Colors.white, size: 24),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Lecture Sessions', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16)),
+                          Text('Discover and join skill classes', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+                        ],
+                      ),
+                    ),
+                    Icon(Icons.arrow_forward_ios_rounded, size: 16, color: theme.colorScheme.primary),
+                  ],
+                ),
+              ),
+            ),
+
+          if (user.endorsements.isNotEmpty) ...[
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Skill Endorsements',
+                style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
+            const SizedBox(height: 12),
+            _buildEndorsementsList(theme, user.endorsements),
+            const SizedBox(height: 32),
+          ],
           if (user.interests.isNotEmpty) ...[
             Align(
               alignment: Alignment.centerLeft,
@@ -398,6 +481,33 @@ class ProfilePage extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildEndorsementsList(ThemeData theme, Map<String, int> endorsements) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: endorsements.entries.map((e) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.primary.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: theme.colorScheme.primary.withOpacity(0.1)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(e.key, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(color: theme.colorScheme.primary, borderRadius: BorderRadius.circular(6)),
+              child: Text('${e.value}', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      )).toList(),
     );
   }
 }

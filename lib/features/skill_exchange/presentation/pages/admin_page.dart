@@ -4,6 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import '../providers/skill_providers.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:fl_chart/fl_chart.dart';
+import '../../../../core/widgets/scale_on_tap.dart';
 import '../providers/auth_providers.dart';
 import '../../domain/entities/user.dart';
 import 'profile_page.dart';
@@ -70,6 +72,7 @@ class AdminPage extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildStats(theme, skillsAsync),
+        _buildUserDistributionChart(theme),
         const Divider(height: 1),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
@@ -240,15 +243,142 @@ class AdminPage extends ConsumerWidget {
   }
 
   Widget _buildStatItem(String label, String value) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: TextStyle(color: Colors.red.shade700, fontSize: 12, fontWeight: FontWeight.bold)),
-        Text(value, style: GoogleFonts.outfit(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.red.shade900)),
-      ],
+    return ScaleOnTapWidget(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: TextStyle(color: Colors.red.shade700, fontSize: 12, fontWeight: FontWeight.bold)),
+          Text(value, style: GoogleFonts.outfit(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.red.shade900)),
+        ],
+      ),
     );
   }
 
+  Widget _buildUserDistributionChart(ThemeData theme) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance.collection('users').snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return const SizedBox.shrink();
+        
+        int approved = 0;
+        int pending = 0;
+        int suspended = 0;
+        
+        for (var doc in snapshot.data!.docs) {
+          final data = doc.data() as Map<String, dynamic>;
+          if (data['isActive'] == false || data['status'] == 'suspended') {
+            suspended++;
+          } else if (data['status'] == 'pending') {
+            pending++;
+          } else {
+            approved++;
+          }
+        }
+        
+        final total = approved + pending + suspended;
+        if (total == 0) return const SizedBox.shrink();
+
+        return Container(
+          height: 220,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          color: Colors.red.shade50,
+          child: Row(
+            children: [
+              Expanded(
+                child: StatefulBuilder(
+                  builder: (context, setChartState) {
+                    int touchedIndex = -1;
+                    return PieChart(
+                      PieChartData(
+                        sectionsSpace: 2,
+                        centerSpaceRadius: 40,
+                        pieTouchData: PieTouchData(
+                          enabled: true,
+                          touchCallback: (FlTouchEvent event, pieTouchResponse) {
+                            if (!event.isInterestedForInteractions ||
+                                pieTouchResponse == null ||
+                                pieTouchResponse.touchedSection == null) {
+                              setChartState(() {
+                                touchedIndex = -1;
+                              });
+                              return;
+                            }
+                            setChartState(() {
+                              touchedIndex = pieTouchResponse.touchedSection!.touchedSectionIndex;
+                            });
+                          },
+                        ),
+                        sections: () {
+                          final sections = <PieChartSectionData>[];
+                          if (approved > 0) {
+                            final idx = sections.length;
+                            sections.add(PieChartSectionData(
+                              color: Colors.green.shade400,
+                              value: approved.toDouble(),
+                              title: '$approved',
+                              radius: touchedIndex == idx ? 60 : 50,
+                              titleStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                            ));
+                          }
+                          if (pending > 0) {
+                            final idx = sections.length;
+                            sections.add(PieChartSectionData(
+                              color: Colors.orange.shade400,
+                              value: pending.toDouble(),
+                              title: '$pending',
+                              radius: touchedIndex == idx ? 60 : 50,
+                              titleStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                            ));
+                          }
+                          if (suspended > 0) {
+                            final idx = sections.length;
+                            sections.add(PieChartSectionData(
+                              color: Colors.red.shade400,
+                              value: suspended.toDouble(),
+                              title: '$suspended',
+                              radius: touchedIndex == idx ? 60 : 50,
+                              titleStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                            ));
+                          }
+                          return sections;
+                        }(),
+                      ),
+                      swapAnimationDuration: const Duration(milliseconds: 250),
+                      swapAnimationCurve: Curves.easeInOut,
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(width: 24),
+              Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildLegendItem(Colors.green.shade400, 'Approved'),
+                  const SizedBox(height: 8),
+                  _buildLegendItem(Colors.orange.shade400, 'Pending'),
+                  const SizedBox(height: 8),
+                  _buildLegendItem(Colors.red.shade400, 'Suspended'),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildLegendItem(Color color, String label) {
+    return ScaleOnTapWidget(
+      child: Row(
+        children: [
+          Container(width: 12, height: 12, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+          const SizedBox(width: 8),
+          Text(label, style: TextStyle(color: Colors.grey.shade800, fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
+  }
 }
 
 // ----------- Users Tab -----------

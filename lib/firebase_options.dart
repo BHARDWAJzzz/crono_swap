@@ -17,10 +17,7 @@ import 'package:flutter/foundation.dart'
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
-      throw UnsupportedError(
-        'DefaultFirebaseOptions have not been configured for web - '
-        'you can reconfigure this by running the FlutterFire CLI again.',
-      );
+      return web;
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
@@ -28,15 +25,9 @@ class DefaultFirebaseOptions {
       case TargetPlatform.iOS:
         return ios;
       case TargetPlatform.macOS:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for macos - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return macos;
       case TargetPlatform.windows:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for windows - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return windows;
       case TargetPlatform.linux:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for linux - '
@@ -66,4 +57,33 @@ class DefaultFirebaseOptions {
     iosClientId: '766683937301-vr66g588a5ccnr50gvn9607gde92kfrv.apps.googleusercontent.com',
     iosBundleId: 'com.example.cronoswap',
   );
+
+  static const FirebaseOptions web = FirebaseOptions(
+    apiKey: 'AIzaSyDcdq0atuK0ShRE8pcIG2Dz5Hn5lF1VJq4',
+    appId: '1:766683937301:web:d0348b726b9ad19543ec1c',
+    messagingSenderId: '766683937301',
+    projectId: 'crono-swap',
+    authDomain: 'crono-swap.firebaseapp.com',
+    storageBucket: 'crono-swap.firebasestorage.app',
+  );
+
+  static const FirebaseOptions macos = FirebaseOptions(
+    apiKey: 'AIzaSyCbvy-4VgFgofeifYb0Beb8nu2WihcfXWE',
+    appId: '1:766683937301:ios:6813eeb5962663dc43ec1c',
+    messagingSenderId: '766683937301',
+    projectId: 'crono-swap',
+    storageBucket: 'crono-swap.firebasestorage.app',
+    iosClientId: '766683937301-vr66g588a5ccnr50gvn9607gde92kfrv.apps.googleusercontent.com',
+    iosBundleId: 'com.example.cronoswap',
+  );
+
+  static const FirebaseOptions windows = FirebaseOptions(
+    apiKey: 'AIzaSyDcdq0atuK0ShRE8pcIG2Dz5Hn5lF1VJq4',
+    appId: '1:766683937301:web:421cb9a8a68f197f43ec1c',
+    messagingSenderId: '766683937301',
+    projectId: 'crono-swap',
+    authDomain: 'crono-swap.firebaseapp.com',
+    storageBucket: 'crono-swap.firebasestorage.app',
+  );
+
 }
