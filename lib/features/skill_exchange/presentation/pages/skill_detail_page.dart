@@ -6,8 +6,9 @@ import '../providers/auth_providers.dart';
 
 class SkillDetailPage extends ConsumerWidget {
   final Skill skill;
+  final String? heroTag;
 
-  const SkillDetailPage({super.key, required this.skill});
+  const SkillDetailPage({super.key, required this.skill, this.heroTag});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -25,7 +26,7 @@ class SkillDetailPage extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Hero(
-              tag: 'skill_${skill.id}',
+              tag: heroTag ?? 'skill_${skill.id}',
               child: Material(
                 color: Colors.transparent,
                 child: Text(
@@ -85,7 +86,7 @@ class SkillDetailPage extends ConsumerWidget {
                 return const SizedBox.shrink();
               },
               loading: () => const SizedBox.shrink(),
-              error: (_, __) => const SizedBox.shrink(),
+              error: (e, s) => const SizedBox.shrink(),
             ),
             const SizedBox(height: 24),
             Text(

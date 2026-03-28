@@ -34,6 +34,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
   ];
 
   bool _isLoading = false;
+  bool _signupSuccess = false;
   int _currentPage = 0;
   DateTime? _selectedDob;
   String? _selectedAvatarUrl;
@@ -126,9 +127,10 @@ class _AuthPageState extends ConsumerState<AuthPage> {
           certificateUrl: certUrl,
           resumeUrl: resumeUrl,
         );
+        // Show success UI before Firebase auto-navigates
+        if (mounted) setState(() { _isLoading = false; _signupSuccess = true; });
       } catch (e) {
         _showError(e.toString());
-      } finally {
         if (mounted) setState(() => _isLoading = false);
       }
     }
@@ -167,6 +169,59 @@ class _AuthPageState extends ConsumerState<AuthPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
+    // Full-screen success overlay shown immediately after signup
+    if (_signupSuccess) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        body: SafeArea(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(40),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Colors.green.shade50,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.check_circle_rounded, size: 80, color: Colors.green.shade500),
+                  ),
+                  const SizedBox(height: 32),
+                  Text(
+                    'Account Created!',
+                    style: GoogleFonts.outfit(
+                      fontSize: 30,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -1,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Welcome, ${_nameController.text.trim().split(" ").first}! 🎉\nYour account is being reviewed by our moderators.',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.outfit(
+                      fontSize: 16,
+                      color: Colors.grey.shade600,
+                      height: 1.6,
+                    ),
+                  ),
+                  const SizedBox(height: 48),
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Taking you to your account...',
+                    style: TextStyle(color: Colors.grey.shade400, fontSize: 13),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: Colors.white,

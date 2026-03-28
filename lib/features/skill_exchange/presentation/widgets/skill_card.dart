@@ -5,8 +5,9 @@ import '../pages/skill_detail_page.dart';
 
 class SkillCard extends StatelessWidget {
   final Skill skill;
+  final String? heroTag;
 
-  const SkillCard({super.key, required this.skill});
+  const SkillCard({super.key, required this.skill, this.heroTag});
 
   IconData _getCategoryIcon(String category) {
     switch (category) {
@@ -36,7 +37,10 @@ class SkillCard extends StatelessWidget {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => SkillDetailPage(skill: skill),
+              builder: (context) => SkillDetailPage(
+                skill: skill,
+                heroTag: heroTag ?? 'skill_${skill.id}',
+              ),
             ),
           );
         },
@@ -95,7 +99,7 @@ class SkillCard extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Hero(
-                tag: 'skill_${skill.id}',
+                tag: heroTag ?? 'skill_${skill.id}',
                 child: Material(
                   color: Colors.transparent,
                   child: Text(

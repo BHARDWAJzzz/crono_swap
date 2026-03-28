@@ -91,7 +91,10 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
                           ),
                           ...recommendedSkills.take(3).map((s) => Padding(
                             padding: const EdgeInsets.only(bottom: 12),
-                            child: SkillCard(skill: s),
+                            child: SkillCard(
+                              skill: s,
+                              heroTag: 'recommended_skill_${s.id}',
+                            ),
                           )),
                           const SizedBox(height: 8),
                         ],
@@ -115,7 +118,10 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
                     if (skillIndex >= remainingSkills.length) return const SizedBox.shrink();
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 16),
-                      child: SkillCard(skill: remainingSkills[skillIndex]),
+                      child: SkillCard(
+                        skill: remainingSkills[skillIndex],
+                        heroTag: 'all_skill_${remainingSkills[skillIndex].id}',
+                      ),
                     );
                   },
                 );
