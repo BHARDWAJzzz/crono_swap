@@ -4,6 +4,9 @@ import 'package:google_fonts/google_fonts.dart';
 import '../providers/skill_providers.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../providers/auth_providers.dart';
+import '../../domain/entities/user.dart';
+import 'profile_page.dart';
 import 'admin_config_page.dart';
 
 class AdminPage extends ConsumerWidget {
@@ -143,57 +146,64 @@ class AdminPage extends ConsumerWidget {
             final data = docs[index].data() as Map<String, dynamic>;
             final userId = docs[index].id;
 
-            return Card(
-              margin: const EdgeInsets.only(bottom: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-                side: BorderSide(color: Colors.grey.shade100),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(data['name'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(color: Colors.orange.shade50, borderRadius: BorderRadius.circular(8)),
-                          child: Text('PENDING', style: TextStyle(color: Colors.orange.shade700, fontSize: 10, fontWeight: FontWeight.bold)),
-                        ),
+            return InkWell(
+              onTap: () {
+                final user = AppUser.fromFirestore(data, userId);
+                Navigator.push(context, MaterialPageRoute(builder: (_) => ProfilePage(user: user)));
+              },
+              borderRadius: BorderRadius.circular(16),
+              child: Card(
+                margin: const EdgeInsets.only(bottom: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(color: Colors.grey.shade100),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(data['name'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(color: Colors.orange.shade50, borderRadius: BorderRadius.circular(8)),
+                            child: Text('PENDING', style: TextStyle(color: Colors.orange.shade700, fontSize: 10, fontWeight: FontWeight.bold)),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(data['email'] ?? '', style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+                      if (data['bio'] != null) ...[
+                        const SizedBox(height: 12),
+                        Text(data['bio'], style: const TextStyle(fontSize: 13, height: 1.4)),
                       ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(data['email'] ?? '', style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
-                    if (data['bio'] != null) ...[
-                      const SizedBox(height: 12),
-                      Text(data['bio'], style: const TextStyle(fontSize: 13, height: 1.4)),
+                      const SizedBox(height: 20),
+                      _VerificationLinks(data: data),
+                      const SizedBox(height: 20),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () => _updateUserStatus(userId, 'rejected'),
+                              style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
+                              child: const Text('Reject'),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: () => _updateUserStatus(userId, 'approved'),
+                              style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
+                              child: const Text('Approve'),
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
-                    const SizedBox(height: 20),
-                    _buildVerificationLinks(data),
-                    const SizedBox(height: 20),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () => _updateUserStatus(userId, 'rejected'),
-                            style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
-                            child: const Text('Reject'),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: () => _updateUserStatus(userId, 'approved'),
-                            style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
-                            child: const Text('Approve'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                  ),
                 ),
               ),
             );
@@ -239,54 +249,6 @@ class AdminPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildVerificationLinks(Map<String, dynamic> data) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'VERIFICATION DOCUMENTS',
-          style: GoogleFonts.outfit(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey.shade400, letterSpacing: 1.2),
-        ),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            if (data['linkedinUrl'] != null)
-              _VerificationChip(
-                label: 'LinkedIn',
-                icon: Icons.link_rounded,
-                onTap: () => _launchURL(data['linkedinUrl']),
-                color: Colors.blue.shade600,
-              ),
-            if (data['certificateUrl'] != null)
-              _VerificationChip(
-                label: 'Certificate',
-                icon: Icons.verified_user_rounded,
-                onTap: () => _launchURL(data['certificateUrl']),
-                color: Colors.green.shade600,
-              ),
-            if (data['resumeUrl'] != null)
-              _VerificationChip(
-                label: 'Resume',
-                icon: Icons.description_rounded,
-                onTap: () => _launchURL(data['resumeUrl']),
-                color: Colors.purple.shade600,
-              ),
-            if (data['linkedinUrl'] == null && data['certificateUrl'] == null && data['resumeUrl'] == null)
-              Text('No documents provided', style: TextStyle(color: Colors.grey.shade400, fontSize: 12, fontStyle: FontStyle.italic)),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Future<void> _launchURL(String url) async {
-    final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
-    }
-  }
 }
 
 // ----------- Users Tab -----------
@@ -349,109 +311,118 @@ class _AdminUsersTabState extends State<_AdminUsersTab> {
                   final isActive = data['isActive'] ?? true;
                   final balance = (data['timeBalance'] ?? 0).toDouble();
 
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      side: BorderSide(
-                        color: isActive ? Colors.grey.shade100 : Colors.red.shade100,
-                        width: 1.5,
+                  return InkWell(
+                    onTap: () {
+                      final user = AppUser.fromFirestore(data, userId);
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => ProfilePage(user: user)));
+                    },
+                    borderRadius: BorderRadius.circular(16),
+                    child: Card(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        side: BorderSide(
+                          color: isActive ? Colors.grey.shade100 : Colors.red.shade100,
+                          width: 1.5,
+                        ),
                       ),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              CircleAvatar(
-                                radius: 20,
-                                backgroundColor: Colors.grey.shade200,
-                                backgroundImage: data['avatarUrl'] != null ? NetworkImage(data['avatarUrl']) : null,
-                                child: data['avatarUrl'] == null ? Text(
-                                  (data['name'] ?? '?')[0].toUpperCase(),
-                                  style: const TextStyle(fontWeight: FontWeight.bold),
-                                ) : null,
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(data['name'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                                    Text(data['email'] ?? '', style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
-                                  ],
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                CircleAvatar(
+                                  radius: 20,
+                                  backgroundColor: Colors.grey.shade200,
+                                  backgroundImage: data['avatarUrl'] != null ? NetworkImage(data['avatarUrl']) : null,
+                                  child: data['avatarUrl'] == null ? Text(
+                                    (data['name'] ?? '?')[0].toUpperCase(),
+                                    style: const TextStyle(fontWeight: FontWeight.bold),
+                                  ) : null,
                                 ),
-                              ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: isActive ? Colors.green.shade50 : Colors.red.shade50,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  isActive ? 'ACTIVE' : 'SUSPENDED',
-                                  style: TextStyle(
-                                    color: isActive ? Colors.green.shade700 : Colors.red.shade700,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(data['name'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                                      Text(data['email'] ?? '', style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
+                                    ],
                                   ),
                                 ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              Icon(Icons.timer_outlined, size: 14, color: Colors.grey.shade500),
-                              const SizedBox(width: 4),
-                              Text(
-                                '${balance.toStringAsFixed(1)} credits',
-                                style: TextStyle(color: Colors.grey.shade600, fontSize: 13, fontWeight: FontWeight.w600),
-                              ),
-                              const Spacer(),
-                              Text(
-                                'Level ${data['level'] ?? 1}',
-                                style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: OutlinedButton.icon(
-                                  onPressed: () => _showAddCreditDialog(context, userId, data['name'] ?? 'User', balance),
-                                  icon: const Icon(Icons.add_card_rounded, size: 16),
-                                  label: const Text('Credits'),
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: Colors.blue.shade700,
-                                    side: BorderSide(color: Colors.blue.shade200),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                    padding: const EdgeInsets.symmetric(vertical: 10),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: isActive ? Colors.green.shade50 : Colors.red.shade50,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    isActive ? 'ACTIVE' : 'SUSPENDED',
+                                    style: TextStyle(
+                                      color: isActive ? Colors.green.shade700 : Colors.red.shade700,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: ElevatedButton.icon(
-                                  onPressed: () => _toggleUserActive(userId, isActive),
-                                  icon: Icon(isActive ? Icons.block_rounded : Icons.check_circle_outline_rounded, size: 16),
-                                  label: Text(isActive ? 'Suspend' : 'Restore'),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: isActive ? Colors.red.shade50 : Colors.green.shade50,
-                                    foregroundColor: isActive ? Colors.red.shade700 : Colors.green.shade700,
-                                    elevation: 0,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                    padding: const EdgeInsets.symmetric(vertical: 10),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Icon(Icons.timer_outlined, size: 14, color: Colors.grey.shade500),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${balance.toStringAsFixed(1)} credits',
+                                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13, fontWeight: FontWeight.w600),
+                                ),
+                                const Spacer(),
+                                Text(
+                                  'Level ${data['level'] ?? 1}',
+                                  style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            _VerificationLinks(data: data),
+                            const SizedBox(height: 20),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    onPressed: () => _showAddCreditDialog(context, userId, data['name'] ?? 'User', balance),
+                                    icon: const Icon(Icons.add_card_rounded, size: 16),
+                                    label: const Text('Credits'),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: Colors.blue.shade700,
+                                      side: BorderSide(color: Colors.blue.shade200),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                      padding: const EdgeInsets.symmetric(vertical: 10),
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ],
-                          ),
-                        ],
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: ElevatedButton.icon(
+                                    onPressed: () => _toggleUserActive(userId, isActive),
+                                    icon: Icon(isActive ? Icons.block_rounded : Icons.check_circle_outline_rounded, size: 16),
+                                    label: Text(isActive ? 'Suspend' : 'Restore'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: isActive ? Colors.red.shade50 : Colors.green.shade50,
+                                      foregroundColor: isActive ? Colors.red.shade700 : Colors.green.shade700,
+                                      elevation: 0,
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                      padding: const EdgeInsets.symmetric(vertical: 10),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   );
@@ -472,6 +443,7 @@ class _AdminUsersTabState extends State<_AdminUsersTab> {
   void _showAddCreditDialog(BuildContext context, String userId, String userName, double currentBalance) {
     final controller = TextEditingController();
     String? note;
+    bool isDeducting = false;
 
     showDialog(
       context: context,
@@ -485,15 +457,35 @@ class _AdminUsersTabState extends State<_AdminUsersTab> {
             children: [
               Text('User: $userName', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
               Text('Current: ${currentBalance.toStringAsFixed(1)} hrs', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
+              
+              // Action Toggle
+              Center(
+                child: SegmentedButton<bool>(
+                  segments: const [
+                    ButtonSegment(value: false, label: Text('Add'), icon: Icon(Icons.add_circle_outline_rounded)),
+                    ButtonSegment(value: true, label: Text('Deduct'), icon: Icon(Icons.remove_circle_outline_rounded)),
+                  ],
+                  selected: {isDeducting},
+                  onSelectionChanged: (Set<bool> newSelection) {
+                    setDialogState(() => isDeducting = newSelection.first);
+                  },
+                  style: SegmentedButton.styleFrom(
+                    selectedBackgroundColor: isDeducting ? Colors.red.shade100 : Colors.green.shade100,
+                    selectedForegroundColor: isDeducting ? Colors.red.shade900 : Colors.green.shade900,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              
               TextField(
                 controller: controller,
-                keyboardType: const TextInputType.numberWithOptions(decimal: false, signed: true),
+                keyboardType: const TextInputType.numberWithOptions(decimal: false, signed: false),
                 decoration: InputDecoration(
-                  labelText: 'Amount (+ to add, - to deduct)',
-                  prefixIcon: const Icon(Icons.add_card_rounded),
+                  labelText: isDeducting ? 'Amount to Deduct' : 'Amount to Add',
+                  prefixIcon: Icon(isDeducting ? Icons.remove_circle_outline_rounded : Icons.add_circle_outline_rounded),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  helperText: 'e.g. 5 to add 5 hrs, -3 to remove 3 hrs',
+                  helperText: isDeducting ? 'Deducting from balance' : 'Adding to balance',
                 ),
               ),
               const SizedBox(height: 12),
@@ -511,21 +503,27 @@ class _AdminUsersTabState extends State<_AdminUsersTab> {
             TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
             ElevatedButton(
               onPressed: () async {
-                final amount = double.tryParse(controller.text);
-                if (amount == null) return;
-                await _adjustCredits(userId, amount, note);
+                final inputAmount = double.tryParse(controller.text);
+                if (inputAmount == null) return;
+                
+                final finalAmount = isDeducting ? -inputAmount.abs() : inputAmount.abs();
+                
+                await _adjustCredits(userId, finalAmount, note);
                 if (ctx.mounted) Navigator.pop(ctx);
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('${amount >= 0 ? "Added" : "Deducted"} ${amount.abs()} credits for $userName'),
-                      backgroundColor: Colors.green,
+                      content: Text('${isDeducting ? "Deducted" : "Added"} ${inputAmount.abs()} credits for $userName'),
+                      backgroundColor: isDeducting ? Colors.red : Colors.green,
                       behavior: SnackBarBehavior.floating,
                     ),
                   );
                 }
               },
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.blue.shade700, foregroundColor: Colors.white),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isDeducting ? Colors.red.shade700 : Colors.green.shade700,
+                foregroundColor: Colors.white,
+              ),
               child: const Text('Apply'),
             ),
           ],
@@ -603,7 +601,7 @@ class _AdminReportsTabState extends State<_AdminReportsTab> {
                     children: [
                       Icon(Icons.check_circle_outline_rounded, size: 64, color: Colors.green.shade200),
                       const SizedBox(height: 16),
-                      Text('No ${_filter} reports 🎉', style: TextStyle(color: Colors.grey.shade400, fontSize: 16)),
+                      Text('No $_filter reports 🎉', style: TextStyle(color: Colors.grey.shade400, fontSize: 16)),
                     ],
                   ),
                 );
@@ -785,5 +783,61 @@ class _VerificationChip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
     );
+  }
+}
+class _VerificationLinks extends StatelessWidget {
+  final Map<String, dynamic> data;
+  const _VerificationLinks({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'VERIFICATION DOCUMENTS',
+          style: GoogleFonts.outfit(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey.shade400, letterSpacing: 1.2),
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            if (data['linkedinUrl'] != null && data['linkedinUrl'].toString().isNotEmpty)
+              _VerificationChip(
+                label: 'LinkedIn',
+                icon: Icons.link_rounded,
+                onTap: () => _launchURL(data['linkedinUrl']),
+                color: Colors.blue.shade600,
+              ),
+            if (data['certificateUrl'] != null && data['certificateUrl'].toString().isNotEmpty)
+              _VerificationChip(
+                label: 'Certificate',
+                icon: Icons.verified_user_rounded,
+                onTap: () => _launchURL(data['certificateUrl']),
+                color: Colors.green.shade600,
+              ),
+            if (data['resumeUrl'] != null && data['resumeUrl'].toString().isNotEmpty)
+              _VerificationChip(
+                label: 'Resume',
+                icon: Icons.description_rounded,
+                onTap: () => _launchURL(data['resumeUrl']),
+                color: Colors.purple.shade600,
+              ),
+            if ((data['linkedinUrl'] == null || data['linkedinUrl'].toString().isEmpty) && 
+                (data['certificateUrl'] == null || data['certificateUrl'].toString().isEmpty) && 
+                (data['resumeUrl'] == null || data['resumeUrl'].toString().isEmpty))
+              Text('No documents provided', style: TextStyle(color: Colors.grey.shade400, fontSize: 12, fontStyle: FontStyle.italic)),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Future<void> _launchURL(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    }
   }
 }

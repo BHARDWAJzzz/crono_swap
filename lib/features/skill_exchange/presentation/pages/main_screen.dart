@@ -112,11 +112,12 @@ class _MainScreenState extends ConsumerState<MainScreen> {
                 index: _selectedIndex,
                 children: pages,
               ),
-              Positioned(
-                top: 60,
-                right: 24,
-                child: _buildBalanceChip(theme, user?.timeBalance ?? 0),
-              ),
+              if (!isAdmin || _selectedIndex != pages.length - 1)
+                Positioned(
+                  top: 60,
+                  right: 24,
+                  child: _buildBalanceChip(theme, user?.timeBalance ?? 0),
+                ),
             ],
           ),
           bottomNavigationBar: Container(

@@ -37,6 +37,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
   int _currentPage = 0;
   DateTime? _selectedDob;
   String? _selectedAvatarUrl;
+  bool _obscurePassword = true;
 
   final List<String> _avatarOptions = [
     'https://api.dicebear.com/7.x/avataaars/png?seed=Felix&backgroundColor=b6e3f4',
@@ -130,6 +131,24 @@ class _AuthPageState extends ConsumerState<AuthPage> {
       } finally {
         if (mounted) setState(() => _isLoading = false);
       }
+    }
+  }
+
+  Future<void> _seedSuperAdmin() async {
+    setState(() => _isLoading = true);
+    try {
+      await ref.read(authRepositoryProvider).signUpWithEmail(
+        email: 'superadmin@gmail.com',
+        password: 'admin@123',
+        name: 'Super Admin',
+        bio: '',
+        interests: ['Coding', 'Cooking', 'Fitness', 'Design'],
+        dob: DateTime(2008, 3, 30),
+      );
+    } catch (e) {
+      _showError(e.toString());
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -275,7 +294,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: theme.colorScheme.primary.withValues(alpha: 0.08),
+                color: theme.colorScheme.primary.withOpacity(0.08),
                 blurRadius: 30,
                 offset: const Offset(0, 15),
               ),
@@ -304,7 +323,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
         Container(
           height: 1,
           width: 40,
-          color: theme.colorScheme.primary.withValues(alpha: 0.2),
+          color: theme.colorScheme.primary.withOpacity(0.2),
         ),
         const SizedBox(height: 8),
         Text(
@@ -356,7 +375,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
               label: 'Password',
               hintText: '••••••••',
               icon: Icons.shield_moon_outlined,
-              obscureText: true,
+              isPassword: true,
               validator: (val) => val!.length < 6 ? 'Min 6 chars' : null,
             ),
             const SizedBox(height: 24),
@@ -589,7 +608,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
             label: 'PASSWORD',
             hintText: '••••••••',
             icon: Icons.lock_outline_rounded,
-            obscureText: true,
+            isPassword: true,
             validator: (val) => val!.length < 6 ? 'Min 6 chars' : null,
           ),
         ],
@@ -811,6 +830,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
     required IconData icon,
     String? hintText,
     bool obscureText = false,
+    bool isPassword = false,
     TextInputType? keyboardType,
     String? Function(String?)? validator,
     int maxLines = 1,
@@ -832,7 +852,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
           const SizedBox(height: 10),
           TextFormField(
             controller: controller,
-            obscureText: obscureText,
+            obscureText: isPassword ? _obscurePassword : obscureText,
             keyboardType: keyboardType,
             validator: validator,
             maxLines: maxLines,
@@ -850,6 +870,17 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                 ),
                 child: Icon(icon, size: 18, color: theme.colorScheme.primary),
               ),
+              suffixIcon: isPassword ? Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: IconButton(
+                  icon: Icon(
+                    _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                    color: theme.colorScheme.primary.withOpacity(0.5),
+                    size: 20,
+                  ),
+                  onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                ),
+              ) : null,
               hintText: hintText,
               hintStyle: GoogleFonts.outfit(color: Colors.grey.shade300, fontSize: 15, fontWeight: FontWeight.normal),
               filled: true,
@@ -864,7 +895,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(20),
-                borderSide: BorderSide(color: theme.colorScheme.primary.withValues(alpha: 0.3), width: 2),
+                borderSide: BorderSide(color: theme.colorScheme.primary.withOpacity(0.3), width: 2),
               ),
               errorBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(20),

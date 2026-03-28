@@ -64,6 +64,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     );
   }
 
+
   Widget _buildHeader(AsyncValue<AppUser?> userData, ThemeData theme) {
     final now = DateTime.now();
     final formattedDate = DateFormat('EEEE, MMM d').format(now);

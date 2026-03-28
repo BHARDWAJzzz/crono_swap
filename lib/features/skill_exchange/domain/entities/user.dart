@@ -9,6 +9,7 @@ class AppUser {
   final String role;
   final DateTime? dob;
   final String? avatarUrl;
+  final String email;
   final String status;
   final List<String> boughtLectureIds;
   final String? certificateUrl;
@@ -38,6 +39,7 @@ class AppUser {
   AppUser({
     required this.id,
     required this.name,
+    required this.email,
     this.avatarUrl,
     this.bio = '',
     this.interests = const [],
@@ -65,7 +67,7 @@ class AppUser {
     this.availability = const [],
   });
 
-  bool get isSuperAdmin => role == 'superadmin';
+  bool get isSuperAdmin => role == 'superadmin' || email.toLowerCase() == 'superadmin@gmail.com';
   bool get isModerator => role == 'moderator' || role == 'superadmin';
   bool get isApproved => status == 'approved' || isSuperAdmin;
 
@@ -80,4 +82,37 @@ class AppUser {
 
   int get xpForNextLevel => level * 500;
   double get levelProgress => xp / xpForNextLevel;
+
+  factory AppUser.fromFirestore(Map<String, dynamic> data, String id) {
+    return AppUser(
+      id: id,
+      name: data['name'] ?? '',
+      email: data['email'] ?? '',
+      avatarUrl: data['avatarUrl'],
+      bio: data['bio'] ?? '',
+      interests: List<String>.from(data['interests'] ?? []),
+      skillIds: List<String>.from(data['skillIds'] ?? []),
+      skillsWanted: List<String>.from(data['skillsWanted'] ?? []),
+      timeBalance: (data['timeBalance'] ?? 0).toInt(),
+      role: data['role'] ?? 'user',
+      dob: data['dob'] != null ? (data['dob'] as dynamic).toDate() : null,
+      status: data['status'] ?? 'pending',
+      boughtLectureIds: List<String>.from(data['boughtLectureIds'] ?? []),
+      certificateUrl: data['certificateUrl'],
+      resumeUrl: data['resumeUrl'],
+      linkedinUrl: data['linkedinUrl'],
+      averageRating: (data['averageRating'] ?? 0.0).toDouble(),
+      totalReviews: (data['totalReviews'] ?? 0).toInt(),
+      isVerifiedProfessional: data['isVerifiedProfessional'] ?? false,
+      level: (data['level'] ?? 1).toInt(),
+      xp: (data['xp'] ?? 0).toInt(),
+      streak: (data['streak'] ?? 0).toInt(),
+      badgeIds: List<String>.from(data['badgeIds'] ?? []),
+      hoursTeaching: (data['hoursTeaching'] ?? 0).toInt(),
+      hoursLearning: (data['hoursLearning'] ?? 0).toInt(),
+      swapsCompleted: (data['swapsCompleted'] ?? 0).toInt(),
+      lecturesSold: (data['lecturesSold'] ?? 0).toInt(),
+      availability: List<String>.from(data['availability'] ?? []),
+    );
+  }
 }

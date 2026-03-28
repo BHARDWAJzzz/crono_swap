@@ -34,6 +34,12 @@ abstract class AuthRepository {
     List<String>? skillsWanted,
     List<String>? availability,
   });
+  Future<void> createProfileForExistingUser({
+    required String name,
+    required String bio,
+    required List<String> interests,
+    required DateTime dob,
+  });
   Future<String> uploadProfileImage(File image);
   Future<void> saveFcmToken(String token);
   Future<String> uploadVerificationFile(File file, String type);
@@ -183,6 +189,7 @@ class FirebaseAuthRepository implements AuthRepository {
     return AppUser(
       id: user.uid,
       name: data['name'] ?? '',
+      email: user.email ?? data['email'] ?? '',
       bio: data['bio'] ?? '',
       interests: List<String>.from(data['interests'] ?? []),
       skillIds: List<String>.from(data['skillIds'] ?? []),
@@ -236,6 +243,45 @@ class FirebaseAuthRepository implements AuthRepository {
       if (linkedinUrl != null) 'linkedinUrl': linkedinUrl,
       if (skillsWanted != null) 'skillsWanted': skillsWanted,
       if (availability != null) 'availability': availability,
+    });
+  }
+
+  @override
+  Future<void> createProfileForExistingUser({
+    required String name,
+    required String bio,
+    required List<String> interests,
+    required DateTime dob,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) throw 'User not authenticated';
+
+    final role = user.email?.toLowerCase() == 'superadmin@gmail.com' ? 'superadmin' : 'user';
+    final status = role == 'superadmin' ? 'approved' : 'pending';
+
+    await _firestore.collection('users').doc(user.uid).set({
+      'name': name,
+      'email': user.email,
+      'bio': bio,
+      'interests': interests,
+      'dob': Timestamp.fromDate(dob),
+      'status': status,
+      'timeBalance': 10,
+      'skillIds': [],
+      'skillsWanted': [],
+      'boughtLectureIds': [],
+      'role': role,
+      'hoursTeaching': 0,
+      'hoursLearning': 0,
+      'swapsCompleted': 0,
+      'lecturesSold': 0,
+      'availability': [],
+      'xp': 0,
+      'level': 1,
+      'streak': 0,
+      'badgeIds': [],
+      'averageRating': 0,
+      'totalReviews': 0,
     });
   }
 
